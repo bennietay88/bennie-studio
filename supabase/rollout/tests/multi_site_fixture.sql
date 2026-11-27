@@ -1,0 +1,33 @@
+-- Minimal schema matching the columns and policy signatures inspected on the
+-- existing database. No customer data or external credentials.
+create role anon nologin;
+create role authenticated nologin;
+create role service_role nologin bypassrls;
+create schema private;
+create schema auth;
+create schema storage;
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create function auth.role() returns text language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claim.role',true),''),current_user)$$;
+create table public.plans(id uuid primary key default gen_random_uuid(),slug text unique not null);
+create table public.businesses(id uuid primary key,plan text,status text,subscription_status text,custom_domain text);
+create table public.profiles(id uuid primary key,business_id uuid,role text,status text);
+create table public.websites(id uuid primary key default gen_random_uuid(),business_id uuid references public.businesses(id),name text,theme jsonb not null,pages jsonb not null,seo jsonb not null,status text default 'draft',updated_at timestamptz default now(),is_primary boolean not null default false,is_internal_pilot boolean not null default false,custom_domain text,custom_domain_status text not null default 'not_connected',custom_domain_verified_at timestamptz,custom_domain_permission_confirmed boolean not null default false,custom_domain_suspended boolean not null default false,domain_dns_records jsonb not null default '[]',ssl_status text not null default 'not_connected',service_id uuid);
+create table public.ai_generation_logs(id uuid primary key default gen_random_uuid(),project_id uuid,credits_charged int,created_at timestamptz default now());
+create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text,metadata jsonb);
+create function private.is_business_member(b uuid) returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.profiles where id=auth.uid() and business_id=b and status='active')$$;
+create function private.is_business_admin(b uuid) returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.profiles where id=auth.uid() and business_id=b and role='business_admin' and status='active')$$;
+create function private.is_super_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.profiles where id=auth.uid() and role='super_admin' and status='active')$$;
+create function public.has_platform_permission(text) returns boolean language sql stable as $$select false$$;
+grant usage on schema public,auth,private,storage to anon,authenticated,service_role;
+grant select on public.websites to anon;
+grant select,insert,update,delete on public.websites,storage.objects to authenticated;
+grant all on all tables in schema public,storage to service_role;
+alter table public.websites enable row level security;
+alter table storage.objects enable row level security;
+create policy legacy_broad on public.websites for all to authenticated using (not is_internal_pilot) with check (not is_internal_pilot);
+create policy legacy_public on public.websites for select to anon using(status='published' and not is_internal_pilot);
+create policy legacy_upload on storage.objects for insert to authenticated with check(bucket_id='website-assets');
+insert into plans(slug) values('starter');
+insert into businesses values('00000000-0000-4000-8000-000000000001','starter','active','active',null),('00000000-0000-4000-8000-000000000002','starter','active','active',null);
+insert into profiles values('00000000-0000-4000-8000-000000000011','00000000-0000-4000-8000-000000000001','business_admin','active'),('00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000002','business_admin','active');
+insert into websites(id,business_id,name,theme,pages,seo,status,is_primary) values('00000000-0000-4000-8000-000000000021','00000000-0000-4000-8000-000000000001','Primary','{}','[]','{}','published',true),('00000000-0000-4000-8000-000000000022','00000000-0000-4000-8000-000000000002','Other private draft','{}','[]','{}','draft',true);

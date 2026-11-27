@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../lib/primaryWebsite";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -750,6 +751,7 @@ function GoogleReviewsEditor({
 
 interface WebsiteEditorProps {
   businessIdOverride?: string;
+  websiteIdOverride?: string;
   templateIdOverride?: string;
   forceShowGenerator?: boolean;
   onTemplateCreated?: (templateId: string) => void;
@@ -757,6 +759,7 @@ interface WebsiteEditorProps {
 
 export function WebsiteEditor({
   businessIdOverride,
+  websiteIdOverride,
   templateIdOverride,
   forceShowGenerator,
   onTemplateCreated,
@@ -988,6 +991,7 @@ export function WebsiteEditor({
           nameText,
           industryText,
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "subheadline") {
         result = await rewriteSubheadline(
@@ -995,6 +999,7 @@ export function WebsiteEditor({
           nameText,
           industryText,
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "faq") {
         const services = [
@@ -1007,6 +1012,7 @@ export function WebsiteEditor({
           industryText,
           services,
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "seo") {
         result = await generateSEOMetadata(
@@ -1014,11 +1020,14 @@ export function WebsiteEditor({
           industryText,
           business.business_nature || business.description || "",
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "marketing" && sectionId && currentValue) {
         result = await generateMarketingContent(currentValue, {
           ...business,
           ...website,
+          businessId:business.id,
+          websiteId:websiteIdOverride?website?.id:undefined,
         });
       }
 
@@ -1104,6 +1113,7 @@ export function WebsiteEditor({
         website.seo.description || "",
         business.id,
         prompt,
+        websiteIdOverride ? website.id : undefined,
       );
       
       if (aiResponse && aiResponse.sections) {
@@ -1191,6 +1201,9 @@ export function WebsiteEditor({
         
         // 1. Fetch content (Website or Template)
         const fetchContent = async (id: string, attempt = 1): Promise<any> => {
+          if (!isTemplateMode && websiteIdOverride) {
+            return supabase.from("websites").select("*").eq("business_id", id).eq("id", websiteIdOverride).maybeSingle();
+          }
           const res = await (isTemplateMode
             ? templateIdOverride === "new"
               ? Promise.resolve({ data: null, error: null })
@@ -1203,9 +1216,9 @@ export function WebsiteEditor({
                 .from("websites")
                 .select("*")
                 .eq("business_id", id)
-                .order("updated_at", { ascending: false })
-                .limit(1)
-                .maybeSingle());
+                .order("is_primary", { ascending: false })
+                .limit(2)
+                .then(({data,error}) => ({data:error ? null : choosePrimaryWebsite(data || []),error})));
 
           // If recently generated but not found, retry (Supabase replication lag or cold starts)
           if (!res.data && !res.error && !isTemplateMode && attempt < 10) {
@@ -1381,7 +1394,7 @@ export function WebsiteEditor({
     } finally {
       setLoading(false);
     }
-  }, [businessId, isTemplateMode, templateIdOverride, resetSeo]);
+  }, [businessId, isTemplateMode, templateIdOverride, websiteIdOverride, resetSeo]);
 
   useEffect(() => {
     fetchData();
@@ -1413,7 +1426,7 @@ export function WebsiteEditor({
             event: "*",
             schema: "public",
             table: "websites",
-            filter: `business_id=eq.${businessId}`,
+            filter: websiteIdOverride ? `id=eq.${websiteIdOverride}` : `business_id=eq.${businessId}`,
           },
           () => {
             if (!isDeleting) {
@@ -1426,34 +1439,40 @@ export function WebsiteEditor({
         supabase.removeChannel(channel);
       };
     }
-  }, [businessId, isTemplateMode, fetchData, isDeleting]);
+  }, [businessId, isTemplateMode, fetchData, isDeleting, websiteIdOverride]);
 
   useEffect(() => {
     const shouldShowGenerator =
-      Boolean(forceShowGenerator) || location.pathname.includes("/regenerate");
+      !websiteIdOverride && (Boolean(forceShowGenerator) || location.pathname.includes("/regenerate"));
     setShowGenerator(shouldShowGenerator);
-  }, [forceShowGenerator, location.pathname]);
+  }, [forceShowGenerator, location.pathname, websiteIdOverride]);
 
   const handleSmartBuild = async () => {
-    if (!website || !business) return;
+    if (!website || !business || isTemplateMode) return;
+    if (websiteIdOverride && (website.id !== websiteIdOverride || website.businessId !== businessId)) { toast.error("Website selection changed."); return; }
+    if (website.status !== "draft") { toast.error("AI generation is available only for draft websites."); return; }
+    if (!window.confirm("Regenerate the selected website draft? Save any changes you want to keep first.")) return;
+    let interval: ReturnType<typeof setInterval> | undefined;
 
     setIsGenerating(true);
     setGenerationProgress(0);
 
     try {
-      const interval = setInterval(() => {
+      const {data: before,error: beforeError}=await supabase.from("websites").select("id,updated_at,status").eq("id",website.id).eq("business_id",website.businessId).eq("status","draft").single();
+      if(beforeError||!before)throw beforeError||new Error("Draft unavailable");
+      interval = setInterval(() => {
         setGenerationProgress((prev) => Math.min(prev + 5, 90));
       }, 500);
 
       // We use current page structure as a hint
-      const sectionTypes = website.pages[0]?.sections.map((s) => s.type) || [
+      const sectionTypes = website.pages[0]?.sections.length ? website.pages[0].sections.map((s) => s.type) : [
         "Hero",
         "Services",
         "CTA",
       ];
 
       const result = await generateWebsiteContent(
-        business.name,
+        websiteIdOverride ? website.seo?.title || business.name : business.name,
         business.industry || "General",
         business.address || "Global",
         website.seo?.brandVoice || "Professional",
@@ -1461,6 +1480,8 @@ export function WebsiteEditor({
         website.seo?.description || business.description || "",
         website.businessId,
         sectionTypes,
+        {},
+        websiteIdOverride ? website.id : undefined,
       );
 
       clearInterval(interval);
@@ -1479,7 +1500,7 @@ export function WebsiteEditor({
           }
 
           finalPages = generatedPages.map((p: any, pageIndex: number) => {
-            const existingPage = website.pages[pageIndex] || website.pages[0];
+            const existingPage = website.pages[pageIndex];
             const mergedSections = mergeGeneratedSections(
               existingPage?.sections || [],
               Array.isArray(p.sections) ? p.sections : [],
@@ -1488,7 +1509,7 @@ export function WebsiteEditor({
             return {
               ...(existingPage || {}),
               ...p,
-              id: existingPage?.id || p.id || generateId(),
+              id: existingPage?.id || generateId(),
               title: p.title || existingPage?.title || (pageIndex === 0 ? "Home" : `Page ${pageIndex + 1}`),
               slug: pageIndex === 0 ? (existingPage?.slug || "") : (p.slug || existingPage?.slug || `page-${pageIndex + 1}`),
               sections: mergedSections.length > 0 ? mergedSections : existingPage?.sections || [],
@@ -1511,19 +1532,24 @@ export function WebsiteEditor({
         }
 
         finalPages = sanitizePages(finalPages);
+        if (finalPages.length > maxPages) throw new Error("Generated content exceeds this website’s page allowance. No content was saved.");
         if (!finalPages[0]?.sections?.length) {
           throw new Error("Smart refinement produced no usable sections, so the existing site was kept.");
         }
 
-        const { error: updateErr } = await supabase
+        await snapshotSavedWebsiteVersion(website.id);
+        const generatedSeo = result.seo || {};
+        const { data: saved, error: updateErr } = await supabase
           .from("websites")
           .update({
             pages: finalPages,
-            seo: result.seo || website.seo || {},
+            seo: { ...website.seo, title: generatedSeo.title || website.seo?.title, description: generatedSeo.description || website.seo?.description, keywords: Array.isArray(generatedSeo.keywords) ? generatedSeo.keywords : website.seo?.keywords, workflowStatus: "draft", deliveryQuality: {}, launchGate: null },
+            updated_at: new Date().toISOString(),
           })
-          .eq("id", website.id);
+          .eq("id", website.id).eq("business_id",website.businessId).eq("status","draft").eq("updated_at",before.updated_at)
+          .select("id").maybeSingle();
 
-        if (updateErr) throw updateErr;
+        if (updateErr || !saved) throw updateErr || new Error("Draft changed during generation. Reload and retry.");
 
         toast.success("Website revitalized with smart generation!");
         await fetchData(website.businessId);
@@ -1539,6 +1565,7 @@ export function WebsiteEditor({
         toast.error("Generation failed: " + (msg || "Unknown error"));
       }
     } finally {
+      if(interval) clearInterval(interval);
       setIsGenerating(false);
       setGenerationProgress(0);
     }
@@ -1639,6 +1666,8 @@ export function WebsiteEditor({
 
   const handleSave = async (data?: any) => {
     if (!website) return;
+    if (websiteIdOverride && (website.id !== websiteIdOverride || website.businessId !== businessId)) { toast.error("Selected website does not match the current workspace."); return; }
+    if (websiteIdOverride && activeTab === "tracking") { toast.info("Tracking remains account-level until site-specific tracking is enabled."); return; }
     if (website.status === "published" && !isInternalOperator) {
       toast.info("Live website changes are handled through the managed update workflow so production stays protected.");
       navigate("/dashboard/update-requests");
@@ -1760,11 +1789,12 @@ export function WebsiteEditor({
         const websitePromise = supabase
           .from("websites")
           .update(updatedWebsiteConfig)
-          .eq("id", website.id);
+          .eq("id", website.id)
+          .eq("business_id", website.businessId);
 
         // Also update business tracking settings if in tracking tab
         let businessPromise: Promise<any> = Promise.resolve({ error: null });
-        if (activeTab === "tracking" && business) {
+        if (activeTab === "tracking" && business && !websiteIdOverride) {
           businessPromise = supabase
             .from("businesses")
             .update({
@@ -1804,6 +1834,7 @@ export function WebsiteEditor({
 
   const handlePublish = async () => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Independent publication requires site-level routing and approval."); return; }
     if (!isInternalOperator) {
       await handleUpdateWorkflowStatus("in_review");
       toast.info("Submitted for Bennie Studio review. An internal operator must approve launch.");
@@ -1873,6 +1904,7 @@ export function WebsiteEditor({
 
   const handleUpdateStatus = async (newStatus: "published" | "draft") => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Site publication changes are not yet enabled."); return; }
     if (newStatus === "draft" && website.status === "published" && !isInternalOperator) {
       toast.error("Live managed websites can only be unpublished by the Bennie Studio delivery team.");
       return;
@@ -1937,6 +1969,7 @@ export function WebsiteEditor({
 
   const handleUpdateWorkflowStatus = async (newStatus: WebsiteWorkflowStatus) => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Site-specific approvals are not yet enabled."); return; }
     if (website.status === "published" && newStatus !== "live" && !isInternalOperator) {
       toast.error("The delivery team manages workflow changes for a live website.");
       return;
@@ -1998,6 +2031,7 @@ export function WebsiteEditor({
 
   const handleDeleteWebsite = async () => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Site removal is not yet enabled."); return; }
     if (!isInternalOperator) {
       toast.error("Managed websites can only be deleted by the Bennie Studio delivery team.");
       setShowDeleteConfirm(false);
@@ -2083,6 +2117,7 @@ export function WebsiteEditor({
         business?.description || website.seo?.description,
         business?.id,
         guidedPrompt,
+        websiteIdOverride ? website.id : undefined,
       );
 
       if (result && result.content) {
@@ -2527,6 +2562,7 @@ export function WebsiteEditor({
         tone,
         businessNature,
         businessId,
+        websiteIdOverride ? website.id : undefined,
       );
 
       const newPage: WebsitePage = {
@@ -2703,6 +2739,8 @@ export function WebsiteEditor({
         tone,
         businessNature,
         businessId,
+        undefined,
+        websiteIdOverride ? website.id : undefined,
       );
 
       const newSection: WebsiteSection = {
@@ -2808,6 +2846,8 @@ export function WebsiteEditor({
         tone,
         businessNature,
         businessId,
+        undefined,
+        websiteIdOverride ? website.id : undefined,
       );
 
       const newSection: WebsiteSection = {
@@ -3805,7 +3845,7 @@ export function WebsiteEditor({
                                 }
                                 placeholder="Write your story using markdown..."
                               />
-                              <ImageUpload
+                              <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                 label="Story / Founder Image"
                                 description="Use a real founder, team, office, project or service image supplied by the customer."
                                 bucket="website-assets"
@@ -4027,7 +4067,7 @@ export function WebsiteEditor({
                             ) : null}
                           </div>
 
-                          <ImageUpload
+                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                             label=""
                             description="Upload a full-section background artwork (JPG, PNG or WebP, max 5MB). It will cover the complete section."
                             value={section.settings?.backgroundImage || ""}
@@ -4442,7 +4482,11 @@ export function WebsiteEditor({
     );
   }
 
-  if (showGenerator) {
+  if (websiteIdOverride && !website && !loading) {
+    return <div role="alert" className="rounded-xl border p-6"><h2 className="font-semibold">Selected website unavailable</h2><p className="text-sm text-slate-500">No other website was selected. Return to My Websites to choose another site.</p><Button variant="outline" onClick={()=>fetchData()}>Retry</Button></div>;
+  }
+
+  if (showGenerator && !websiteIdOverride) {
     return (
       <div className="space-y-6">
         <Button
@@ -4762,6 +4806,7 @@ export function WebsiteEditor({
                     size="sm"
                     className="text-xs font-bold text-slate-500 hover:text-indigo-600 gap-2 rounded-xl whitespace-nowrap"
                     onClick={() => setShowGenerator(true)}
+                    disabled={Boolean(websiteIdOverride)}
                   >
                     <Sparkles className="h-3 w-3" />{" "}
                     <span className="hidden sm:inline">Deploy Framework</span>
@@ -7176,7 +7221,7 @@ export function WebsiteEditor({
                                                 }
                                               />
                                             </div>
-                                            <ImageUpload
+                                            <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                               label="Hero Image"
                                               bucket="website-assets"
                                               value={
@@ -7276,7 +7321,7 @@ export function WebsiteEditor({
                                               About text is required
                                             </p>
                                           )}
-                                          <ImageUpload
+                                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                             label="Story / Founder Image"
                                             description="Use customer-supplied founder, team, office, project or service photography."
                                             bucket="website-assets"
@@ -7307,9 +7352,9 @@ export function WebsiteEditor({
                                         <Textarea value={section.content.description || ""} onChange={e => updateSectionContent(page.id, section.id, {description:e.target.value})}/>
                                         <div className="grid gap-4 sm:grid-cols-2">
                                           <div className="space-y-2"><Label>Before label</Label><Input value={section.content.beforeLabel || ""} onChange={e => updateSectionContent(page.id, section.id, {beforeLabel:e.target.value})}/>
-                                          <ImageUpload label="Before image" bucket="website-assets" value={section.content.beforeImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {beforeImageUrl:url})}/></div>
+                                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined} label="Before image" bucket="website-assets" value={section.content.beforeImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {beforeImageUrl:url})}/></div>
                                           <div className="space-y-2"><Label>After label</Label><Input value={section.content.afterLabel || ""} onChange={e => updateSectionContent(page.id, section.id, {afterLabel:e.target.value})}/>
-                                          <ImageUpload label="After image" bucket="website-assets" value={section.content.afterImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {afterImageUrl:url})}/></div>
+                                          <ImageUpload websiteId={websiteIdOverride ? website.id : undefined} label="After image" bucket="website-assets" value={section.content.afterImageUrl || ""} onUpload={url => updateSectionContent(page.id, section.id, {afterImageUrl:url})}/></div>
                                         </div>
                                         <p className="text-xs text-slate-500">Use matching, approved images. This section stays hidden on the published website until both images are available.</p>
                                       </div>
@@ -7695,7 +7740,7 @@ export function WebsiteEditor({
                                                     );
                                                   }}
                                                 />
-                                                <ImageUpload
+                                                <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                                   label="Member Image"
                                                   description="Square aspect ratio works best."
                                                   value={member.imageUrl || ""}
@@ -7796,7 +7841,7 @@ export function WebsiteEditor({
                                                   }}
                                                 />
                                               </div>
-                                              <ImageUpload
+                                              <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                                 label="Service Image (optional)"
                                                 description="Use a customer-supplied service, project or product image."
                                                 bucket="website-assets"
@@ -8589,7 +8634,7 @@ export function WebsiteEditor({
                                               },
                                             )}
                                             <div className="sm:col-span-2">
-                                              <ImageUpload
+                                              <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                                                 label="Add Logo"
                                                 description="Upload only client, partner, association, certification, platform or technology logos the business is entitled to display."
                                                 bucket="website-assets"
@@ -9967,7 +10012,7 @@ export function WebsiteEditor({
                   <div className="space-y-3 pt-4 border-t border-slate-100">
                     <Label className="text-base">Logo Settings</Label>
                     <div className="space-y-4">
-                      <ImageUpload
+                      <ImageUpload websiteId={websiteIdOverride ? website.id : undefined}
                         label="Logo Upload"
                         description="PNG or SVG recommended."
                         value={website.theme.logoUrl || ""}
@@ -10841,6 +10886,7 @@ export function WebsiteEditor({
                             targetBusiness.location,
                             targetBusiness.business_nature || "",
                             bId !== "template" ? bId : undefined,
+                            websiteIdOverride ? website?.id : undefined,
                           );
 
                           // Update current state and form
@@ -11393,6 +11439,8 @@ export function WebsiteEditor({
                                   location: business?.location,
                                   targetAudience: website?.seo.targetAudience,
                                   currentSeo: website?.seo,
+                                  businessId:website?.businessId,
+                                  websiteId:websiteIdOverride?website?.id:undefined,
                                 },
                               );
                               setSeoAudit(result);
@@ -11438,6 +11486,8 @@ export function WebsiteEditor({
                                     location: business?.location,
                                     targetAudience: website?.seo.targetAudience,
                                     currentSeo: website?.seo,
+                                  businessId:website?.businessId,
+                                  websiteId:websiteIdOverride?website?.id:undefined,
                                   },
                                 );
                                 setSeoAudit(result);

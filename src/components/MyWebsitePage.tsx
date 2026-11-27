@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../lib/primaryWebsite";
 import React from "react";
 import { Activity, AlertTriangle, CheckCircle2, ExternalLink, FileEdit, Globe, Loader2, MessageSquare, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -16,11 +17,11 @@ export function MyWebsitePage() {
   React.useEffect(() => {
     if (!profile?.businessId) { setLoading(false); return; }
     let active = true;
-    supabase.from("websites").select("id,status,updated_at,pages,seo").eq("business_id", profile.businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle()
+    supabase.from("websites").select("id,status,updated_at,pages,seo,is_primary").eq("business_id", profile.businessId).order("is_primary",{ascending:false}).limit(2)
       .then(({ data, error: queryError }) => {
         if (!active) return;
         if (queryError) setError("Your website status could not be loaded. Please retry shortly.");
-        setWebsite(data || null);
+        try { setWebsite(choosePrimaryWebsite(data || [])); } catch { setWebsite(null); setError("Primary website is ambiguous. Contact support."); }
         setLoading(false);
       });
     return () => { active = false; };

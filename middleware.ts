@@ -1,3 +1,6 @@
+import { matchWebsiteRedirect } from "./src/lib/websiteRedirects.js";
+import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "./src/lib/secondarySiteRouting.js";
+import { choosePrimaryWebsite } from "./src/lib/primaryWebsite.js";
 import { next, rewrite } from "@vercel/functions";
 import { classifyTenantHost, getPlatformHosts, normalizeDomainInput } from "./src/lib/tenantDomains.js";
 import { isHandoverGraceActive } from "./src/lib/billingLifecycle.js";
@@ -75,6 +78,24 @@ async function resolveTenantHost(host: string): Promise<TenantResolveResult> {
   const tenant = classifyTenantHost(host, process.env as Record<string, string | undefined>);
   if (tenant.kind === "platform") return { ok: false, status: 404, code: "DOMAIN_NOT_FOUND", message: "Domain not found." };
 
+  // Site-level routing is opt-in until the database rollout has been validated.
+  if (tenant.kind === "custom_domain" && process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true" && process.env.MULTI_SITE_DOMAINS === "true" && process.env.MULTI_SITE_PUBLICATION === "true") {
+    const rows: SecondaryRouteRow[] = await fetchSupabase(`websites?select=${SECONDARY_SITE_ROUTE_FIELDS}&custom_domain=eq.${encodeURIComponent(host)}&is_primary=eq.false&limit=2`);
+    if (rows.length > 1) return {ok:false,status:409,code:"AMBIGUOUS_DOMAIN",message:"This domain is not available."};
+    if (rows.length === 1) {
+      const site = rows[0];
+      const failure = secondaryDomainFailure(site,host);
+      if(failure) return {ok:false,...failure};
+      const owners=await fetchSupabase(`businesses?select=${TENANT_SELECT}&id=eq.${encodeURIComponent(site.business_id)}&limit=1`);
+      const owner=owners?.[0];
+      if(!owner||owner.id!==site.business_id||owner.status!=="active"||owner.subscription_status!=="active")return {ok:false,status:403,code:"BUSINESS_INACTIVE",message:"This website is not available."};
+      const allowedResponse=await fetch(new URL("rpc/website_slot_available",`${process.env.VITE_SUPABASE_URL}/rest/v1/`),{method:"POST",headers:{...supabaseHeaders(),"Content-Type":"application/json"},body:JSON.stringify({p_business:site.business_id,p_website:site.id}),cache:"no-store"});
+      if(!allowedResponse.ok)throw Error("Website allowance verification failed");
+      if(await allowedResponse.json()!==true)return {ok:false,status:402,code:"WEBSITE_ALLOWANCE_EXCEEDED",message:"This website is not available."};
+      return {ok:true,businessId:site.business_id,websiteId:site.id,kind:tenant.kind};
+    }
+  }
+
   const businesses =
     tenant.kind === "subdomain"
       ? await fetchSupabase(`businesses?select=${TENANT_SELECT}&subdomain=eq.${encodeURIComponent(tenant.subdomain)}&limit=1`)
@@ -89,10 +110,10 @@ async function resolveTenantHost(host: string): Promise<TenantResolveResult> {
   if (businessFailure) return businessFailure;
 
   const websites = await fetchSupabase(
-    `websites?select=id,business_id,status&business_id=eq.${encodeURIComponent(business.id)}&status=eq.published&order=updated_at.desc&limit=1`,
+    `websites?select=id,business_id,status,is_primary&business_id=eq.${encodeURIComponent(business.id)}&order=is_primary.desc&limit=2`,
   );
-  const website = websites?.[0];
-  if (!website) return { ok: false, status: 404, code: "WEBSITE_NOT_PUBLISHED", message: "This domain is not connected to a published website yet." };
+  const website = choosePrimaryWebsite<{id:string;business_id:string;status:string;is_primary:boolean}>(websites || []);
+  if (!website || website.status !== "published") return { ok: false, status: 404, code: "WEBSITE_NOT_PUBLISHED", message: "This domain is not connected to a published website yet." };
   if (website.business_id !== business.id) return { ok: false, status: 409, code: "WEBSITE_BUSINESS_MISMATCH", message: "This domain is not available." };
 
   return { ok: true, businessId: business.id, websiteId: website.id, kind: tenant.kind };
@@ -112,6 +133,27 @@ export default async function middleware(request: Request) {
   });
   if (result.ok === false) return jsonError(result.status, result.code, result.message);
 
+  if(url.pathname==="/robots.txt"||url.pathname==="/sitemap.xml"){
+    const rows=await fetchSupabase("websites?select=id,business_id,status,pages&business_id=eq."+encodeURIComponent(result.businessId)+"&id=eq."+encodeURIComponent(result.websiteId)+"&limit=1").catch(()=>[]);
+    const site=rows?.[0];
+    if(!site||site.status!=="published"||site.id!==result.websiteId||site.business_id!==result.businessId)return jsonError(404,"WEBSITE_NOT_PUBLISHED","This website is not available.");
+    const origin="https://"+host;
+    if(url.pathname==="/robots.txt")return new Response("User-agent: *\nAllow: /\nSitemap: "+origin+"/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
+    const paths=new Set<string>(["/"]);
+    for(const page of Array.isArray(site.pages)?site.pages:[]){
+      if(typeof page?.slug==="string"&&/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/i.test(page.slug)&&page.slug!=="home")paths.add("/"+page.slug);
+    }
+    const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+Array.from(paths,p=>"<url><loc>"+origin+p+"</loc></url>").join("")+"</urlset>";
+    return new Response(xml,{headers:{"content-type":"application/xml; charset=utf-8","cache-control":"no-store"}});
+  }
+  if(process.env.MULTI_SITE_DRAFT_LIFECYCLE==="true"){
+    const rows=await fetchSupabase("websites?select=id,business_id,seo&business_id=eq."+encodeURIComponent(result.businessId)+"&id=eq."+encodeURIComponent(result.websiteId)+"&limit=1").catch(()=>[]);
+    const site=rows?.[0];
+    if(site?.id===result.websiteId&&site.business_id===result.businessId){
+      const rule=matchWebsiteRedirect(site.seo?.siteRedirects,url.pathname);
+      if(rule){const target=new URL(url);target.pathname=rule.to;target.search="";return new Response(null,{status:rule.status,headers:{Location:target.toString(),"Cache-Control":"no-store"}});}
+    }
+  }
   const headers = new Headers(request.headers);
   headers.set("x-bts-tenant-host", host);
   headers.set("x-bts-business-id", result.businessId);
@@ -125,5 +167,5 @@ export default async function middleware(request: Request) {
 
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!api/|assets/|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
+  matcher: ["/robots.txt", "/sitemap.xml", "/((?!api/|assets/|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
 };

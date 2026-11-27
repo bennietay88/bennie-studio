@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../lib/primaryWebsite";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -628,7 +629,9 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       if (profileError) throw profileError;
 
       // 3. Create Default Website or Use Selected Template
-      const { data: existingWebsite } = await supabase.from("websites").select("id").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: existingSites, error: existingSitesError } = await supabase.from("websites").select("id,is_primary").eq("business_id", businessId).order("is_primary",{ascending:false}).limit(2);
+      if(existingSitesError) throw existingSitesError;
+      const existingWebsite = choosePrimaryWebsite(existingSites || []);
       const websiteId = existingWebsite?.id || generateId();
       const generationStart = performance.now();
       let websiteData: any;

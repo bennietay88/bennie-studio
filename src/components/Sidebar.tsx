@@ -161,6 +161,7 @@ export function Sidebar({
           label: "Customers & Delivery",
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
+             { to: "/admin/website_operations", icon: Globe, label: "Website Management" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
             { to: "/admin/operations_control", icon: BriefcaseBusiness, label: "Operations Control", moduleId: "operations_control" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },
@@ -228,6 +229,7 @@ export function Sidebar({
           label: "Delivery Ops",
           items: [
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", permission: "delivery" },
+            { to: "/admin/website_operations", icon: Globe, label: "Website Operations", permission: "delivery" },
             { to: "/admin/client_onboarding", icon: Sparkles, label: "Client Handover", permission: "delivery" },
             { to: "/admin/seo_management", icon: Search, label: "SEO Operations", permission: "delivery" },
             { to: "/admin/support", icon: Headphones, label: "Support Desk", permission: "support" },
@@ -256,7 +258,8 @@ export function Sidebar({
       return [
         { label: "Website", items: [
           { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
-          { to: "/dashboard/my-website", icon: Globe, label: "My Website" },
+          { to: "/dashboard/websites", icon: Globe, label: "My Websites" },
+          { to: "/dashboard/my-website", icon: Globe, label: "Managed Website" },
           { to: "/dashboard/approvals", icon: ShieldCheck, label: "Review & Approvals" },
           { to: "/dashboard/analytics", icon: BarChart3, label: "Performance", featureId: "analytics" },
         ]},

@@ -246,6 +246,18 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
         typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
       
       let businessId = isUUID(profile?.businessId) ? profile.businessId : null;
+      // Legacy onboarding is single-site only. Fail before changing business
+      // settings if the workspace has multiple websites; never choose the newest.
+      let existingWebsiteId: string | null = null;
+      if (businessId) {
+        const { data: existingSites, error: existingSitesError } = await supabase
+          .from("websites").select("id").eq("business_id", businessId).limit(2);
+        if (existingSitesError) throw existingSitesError;
+        if ((existingSites || []).length > 1) {
+          throw new Error("This workspace has multiple websites. Open a specific website from My Websites instead.");
+        }
+        existingWebsiteId = existingSites?.[0]?.id || null;
+      }
       const selectedNiche = Object.values(NICHE_TEMPLATES).find(t => t.id === data.templateId);
       if (!selectedNiche) throw new Error("Invalid template selected");
       const selectedPlanForSubmit = availablePlans.find((plan) => plan.id === data.planId) || selectedPlan;
@@ -456,31 +468,25 @@ export function WebsiteGenerator({ onSuccess, user: propUser, profile: propProfi
 
       setProgress(80);
 
-      // 3. Save website
-      let { data: existingWeb } = await supabase
-        .from("websites")
-        .select("id")
-        .eq("business_id", businessId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      
-      if (existingWeb) {
-        await supabase
+      // 3. Save website using the identity captured before account mutations.
+      const { data: currentSites, error: currentSitesError } = await supabase
+        .from("websites").select("id").eq("business_id", businessId).limit(2);
+      if (currentSitesError) throw currentSitesError;
+      if ((currentSites || []).length > 1 ||
+          (currentSites?.[0]?.id || null) !== existingWebsiteId) {
+        throw new Error("Website selection changed. Return to My Websites and try again.");
+      }
+      if (existingWebsiteId) {
+        const { data: saved, error: webErr } = await supabase
           .from("websites")
-          .update({ 
-            ...websiteData,
-            updated_at: new Date().toISOString() 
-          })
-          .eq("id", existingWeb.id);
+          .update({ ...websiteData, updated_at: new Date().toISOString() })
+          .eq("id", existingWebsiteId).eq("business_id", businessId)
+          .select("id").single();
+        if (webErr || !saved) throw webErr || new Error("Website update failed");
       } else {
         const { error: webErr } = await supabase
           .from("websites")
-          .insert([{ 
-            ...websiteData, 
-            created_at: new Date().toISOString(), 
-            updated_at: new Date().toISOString() 
-          }]);
+          .insert([{ ...websiteData, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }]);
         if (webErr) throw webErr;
       }
 

@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../lib/primaryWebsite";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -357,6 +358,7 @@ export function WebsiteRenderer({
   initialData,
   activePageSlug: propActivePageSlug,
   businessIdOverride,
+  websiteIdOverride,
   isTemplatePreview = false,
   enableRealtime = true,
   isEditingPreview = false,
@@ -365,6 +367,7 @@ export function WebsiteRenderer({
   initialData?: Website;
   activePageSlug?: string;
   businessIdOverride?: string;
+  websiteIdOverride?: string;
   isTemplatePreview?: boolean;
   enableRealtime?: boolean;
   isEditingPreview?: boolean;
@@ -377,9 +380,10 @@ export function WebsiteRenderer({
   const businessId = initialData?.businessId || businessIdOverride || businessIdFromParams;
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const draftPreview = searchParams.get("draft") === "1" || searchParams.get("draft") === "true";
+  const draftPreview = !websiteIdOverride && (searchParams.get("draft") === "1" || searchParams.get("draft") === "true");
   const isThumbnail = searchParams.get("thumbnail") === "1";
-  const requestedWebsiteId = searchParams.get("website");
+  const requestedWebsiteId = websiteIdOverride || searchParams.get("website");
+  const accountThumbnail=Boolean(isThumbnail&&draftPreview&&requestedWebsiteId&&businessId);
   const { isFeatureEnabled } = useFeatures();
   const [website, setWebsite] = useState<Website | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
@@ -420,7 +424,7 @@ export function WebsiteRenderer({
   const [formSuccess, setFormSuccess] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [activePageSlug, setActivePageSlug] = useState(
-    propActivePageSlug || "home",
+    propActivePageSlug || (websiteIdOverride ? window.location.pathname.replace(/^\/+|\/+$/g,"") || "home" : "home"),
   );
 
   const scrollPreviewToTop = (behavior: ScrollBehavior = "auto") => {
@@ -484,10 +488,10 @@ export function WebsiteRenderer({
 
   useEffect(() => {
     scrollPreviewToTop("auto");
-    if (!website?.theme?.previewPurpose) {
+    if (!isThumbnail && !draftPreview && !isEditingPreview && !website?.theme?.previewPurpose) {
       trackPinterestPageVisit(window.location.pathname + window.location.search);
     }
-  }, [activePageSlug, selectedPost?.id, website?.theme?.previewPurpose]);
+  }, [activePageSlug, selectedPost?.id, website?.theme?.previewPurpose,isThumbnail,draftPreview,isEditingPreview]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -524,7 +528,7 @@ export function WebsiteRenderer({
     label: string,
     metadata: Record<string, any> = {},
   ) => {
-    if (isEditingPreview || !website || website.id === "preview" || website.theme?.previewPurpose) return;
+    if (isEditingPreview || draftPreview || !website || website.status !== "published" || website.id === "preview" || website.theme?.previewPurpose) return;
 
     try {
       const { visitorId, sessionId } = getTrackingIds();
@@ -534,6 +538,7 @@ export function WebsiteRenderer({
         keepalive: true,
         body: JSON.stringify({
           businessId: website.businessId,
+          websiteId: website.id,
           visitorId,
           sessionId,
           eventType,
@@ -765,21 +770,30 @@ export function WebsiteRenderer({
     const fetchWebsite = async () => {
       if (!businessId) return;
       try {
+        let thumbnailData:any=null;
+        if(accountThumbnail){
+          const {portfolioRequest}=await import("../lib/websitePortfolioApi");
+          const result=await portfolioRequest<{siteId:string;businessId:string;website:any}>("/api/account/websites/"+encodeURIComponent(requestedWebsiteId!)+"/preview");
+          if(result.siteId!==requestedWebsiteId||result.businessId!==businessId||result.website?.id!==requestedWebsiteId||result.website.business_id!==businessId)throw Error("Preview scope changed.");
+          thumbnailData=result.website;
+        }
         let query = supabase
           .from("websites")
           .select("*")
           .eq("business_id", businessId);
 
-        if (requestedWebsiteId) {
-          query = query.eq("id", requestedWebsiteId);
-        } else if (!draftPreview) {
-          query = query.eq("status", "published");
+        if (requestedWebsiteId) query = query.eq("id", requestedWebsiteId);
+        const { data: rows, error } = thumbnailData?{data:[thumbnailData],error:null}:await query.order("is_primary", { ascending: false }).limit(2);
+        if (error) throw error;
+        let selected = requestedWebsiteId ? rows?.[0] : choosePrimaryWebsite(rows || []);
+        if(websiteIdOverride&&(!selected||selected.is_primary===false)){
+          const response=await fetch("/api/custom-domain/resolve?host="+encodeURIComponent(window.location.hostname)+"&content=1",{cache:"no-store"});
+          const payload=await response.json();
+          if(!response.ok||payload.websiteId!==websiteIdOverride||payload.businessId!==businessId)throw Error("Website unavailable");
+          if(payload.website?.id===websiteIdOverride&&payload.website?.business_id===businessId)selected=payload.website;
         }
-
-        const { data, error } = await query
-          .order("updated_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const data = selected && !selected.is_internal_pilot && !selected.archived_at &&
+          (draftPreview || (selected.status === "published" && (selected.is_primary !== false || Boolean(websiteIdOverride)))) ? selected : null;
 
         if (data) {
           const theme = { ...data.theme };
@@ -830,6 +844,7 @@ export function WebsiteRenderer({
   }, [activePageSlug, website]);
 
   useEffect(() => {
+    if(accountThumbnail)return;
     const hasBlogList = website?.pages.some((p) =>
       p.sections.some((s) => s.type === "blog_list"),
     );
@@ -895,10 +910,10 @@ export function WebsiteRenderer({
         if (channel) supabase.removeChannel(channel);
       };
     }
-  }, [activePageSlug, businessId, enableRealtime, website]);
+  }, [activePageSlug, businessId, enableRealtime, website,accountThumbnail]);
 
   useEffect(() => {
-    if (businessId) {
+    if (businessId&&!accountThumbnail) {
       const fetchPolicies = async () => {
         const { data } = await supabase
           .from("settings")
@@ -914,11 +929,11 @@ export function WebsiteRenderer({
       };
       fetchPolicies();
     }
-  }, [businessId]);
+  }, [businessId,accountThumbnail]);
 
   useEffect(() => {
     if (businessId) {
-      if (businessId === "preview") {
+      if (businessId === "preview"||accountThumbnail) {
         const previewName =
           initialData?.seo?.title?.split("|")[0]?.trim() ||
           website?.seo?.title?.split("|")[0]?.trim() ||
@@ -962,9 +977,10 @@ export function WebsiteRenderer({
     if (refCode && businessId) {
       localStorage.setItem(`ref_${businessId}`, refCode);
     }
-  }, [businessId, location.search, initialData, website?.seo?.title, website?.seo?.businessType, website?.seo?.brandVoice, website?.seo?.placename]);
+  }, [businessId, location.search, initialData, website?.seo?.title, website?.seo?.businessType, website?.seo?.brandVoice, website?.seo?.placename,accountThumbnail]);
 
   useEffect(() => {
+    if(accountThumbnail)return;
     const fetchComplianceSettings = async () => {
       try {
         const { data } = await supabase
@@ -978,10 +994,10 @@ export function WebsiteRenderer({
       }
     };
     fetchComplianceSettings();
-  }, []);
+  }, [accountThumbnail]);
 
   useEffect(() => {
-    if (businessId && businessId !== "preview") {
+    if (businessId && businessId !== "preview"&&!accountThumbnail) {
       const fetchProducts = async () => {
         const { data } = await supabase
           .from("products")
@@ -1047,7 +1063,7 @@ export function WebsiteRenderer({
         if (channel) supabase.removeChannel(channel);
       };
     }
-  }, [businessId, enableRealtime]);
+  }, [businessId, enableRealtime,accountThumbnail]);
 
   const handleCheckout = async (product: any) => {
     if (!product || !businessId) return;
@@ -1139,7 +1155,7 @@ export function WebsiteRenderer({
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!website) return;
-    if (website.theme?.previewPurpose) {
+    if (isEditingPreview || draftPreview || website.status !== "published" || website.theme?.previewPurpose) {
       setFormSuccess(true);
       setLeadForm({ name: "", email: "", phone: "", service: "", message: "", marketingConsent: false });
       toast.info("Preview only. No real enquiry was sent.");
@@ -1155,6 +1171,7 @@ export function WebsiteRenderer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessId: website.businessId,
+          websiteId: website.id,
           ...leadForm,
           visitorId,
           sessionId,
@@ -1220,6 +1237,7 @@ export function WebsiteRenderer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessId: website.businessId,
+          websiteId: website.id,
           visitorId,
           sessionId,
           eventType: "appointment_requested",
@@ -1449,10 +1467,10 @@ export function WebsiteRenderer({
   const secureFormsEnabled = complianceSettings?.secureFormsEnabled !== false;
   const marketingConsentEnabled = complianceSettings?.marketingConsentEnabled !== false;
   const canLoadAnalytics =
-    complianceSettings?.analyticsScriptsEnabled === true &&
+    !accountThumbnail && !draftPreview && complianceSettings?.analyticsScriptsEnabled === true &&
     (!complianceSettings?.analyticsRequiresConsent || !!cookieConsent?.analytics);
   const canLoadMarketing =
-    complianceSettings?.marketingScriptsEnabled === true &&
+    !accountThumbnail && !draftPreview && complianceSettings?.marketingScriptsEnabled === true &&
     (!complianceSettings?.marketingRequiresConsent || !!cookieConsent?.marketing);
   const generatedPolicies = complianceSettings?.generatedPages || {};
   const legalPolicyLinks = [
@@ -1575,7 +1593,9 @@ export function WebsiteRenderer({
       : website.seo.keywords;
 
   const currentUrl = window.location.href.split("?")[0];
-  const canonicalUrl = website.seo.canonicalUrl || currentUrl;
+  const canonicalUrl = websiteIdOverride&&!isEditingPreview&&!isTemplatePreview
+    ? window.location.origin + (activePageSlug&&activePageSlug!=="home"&&/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/i.test(activePageSlug)?"/"+activePageSlug:"/")
+    : website.seo.canonicalUrl || currentUrl;
 
   const generateJsonLd = () => {
     if (!website) return null;
@@ -1766,7 +1786,7 @@ export function WebsiteRenderer({
           <title>{displayTitle}</title>
           <meta name="description" content={displayDescription} />
           <meta name="keywords" content={displayKeywords.join(", ")} />
-          {website.theme?.previewPurpose ? <meta name="robots" content="noindex,nofollow" /> : null}
+          {(website.theme?.previewPurpose||draftPreview||accountThumbnail) ? <meta name="robots" content="noindex,nofollow" /> : null}
 
           {isFeatureEnabled("advanced_seo") && (
             <>

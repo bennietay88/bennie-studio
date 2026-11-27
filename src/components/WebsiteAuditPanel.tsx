@@ -1,0 +1,9 @@
+import {useEffect,useState} from "react";
+import {portfolioRequest} from "../lib/websitePortfolioApi";
+import {Button} from "./ui/button";
+type Entry={id:string;action:string;actor_id:string|null;business_id?:string;created_at:string;details:Record<string,unknown>};
+export default function WebsiteAuditPanel({siteId}:{siteId?:string}){
+ const [entries,setEntries]=useState<Entry[]|null>(null),[error,setError]=useState(""),[refresh,setRefresh]=useState(0);
+ useEffect(()=>{let active=true;setEntries(null);setError("");const path=siteId?"/api/admin/website-operations/"+encodeURIComponent(siteId)+"/audit":"/api/admin/website-commercial-audit";portfolioRequest<{siteId?:string;events:Entry[]}>(path).then(r=>{if(siteId&&r.siteId!==siteId)throw Error("Audit scope changed");if(active)setEntries(r.events);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[siteId,refresh]);
+ return <section className="space-y-3 rounded-xl border p-4"><div className="flex justify-between gap-2"><h3 className="font-semibold">{siteId?"Website lifecycle history":"Website commercial history"}</h3><Button variant="outline" onClick={()=>setRefresh(v=>v+1)}>Refresh</Button></div>{error?<p role="alert">{error}</p>:!entries?<p role="status">Loading history…</p>:entries.length===0?<p>No audit events.</p>:<div className="max-h-96 overflow-auto"><table className="w-full text-left text-sm"><thead><tr><th>Time</th><th>Action</th><th>Actor / business</th><th>Details</th></tr></thead><tbody>{entries.map(e=><tr key={e.id} className="border-t"><td className="p-2">{new Date(e.created_at).toLocaleString()}</td><td className="p-2">{e.action}</td><td className="p-2 break-all">{e.actor_id||"System"}{e.business_id&&<div>{e.business_id}</div>}</td><td className="p-2"><details><summary>View</summary><pre className="max-w-xs whitespace-pre-wrap break-all text-xs">{JSON.stringify(e.details,null,2)}</pre></details></td></tr>)}</tbody></table></div>}</section>;
+}

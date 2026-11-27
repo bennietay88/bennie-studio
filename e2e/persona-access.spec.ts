@@ -282,3 +282,28 @@ test("super admin can enter the platform admin area", async ({ page }) => {
   await signInAs(page, testPersonas.superAdmin);
   await expect(page).toHaveURL(/\/admin/);
 });
+
+// Authenticated UI integration with deterministic test personas and isolated mocked API state.
+test("website portfolio preserves independent site selection and quotas",async({page})=>{
+ await signInAs(page,testPersonas.businessAdmin);
+ const first="00000000-0000-4000-8000-000000000201",second="00000000-0000-4000-8000-000000000202";
+ const sites=[{id:first,business_id:businessId,name:"Primary fixture",status:"published",is_primary:true},{id:second,business_id:businessId,name:"Secondary fixture",status:"draft",is_primary:false}];
+ let mutation:any;
+ await page.route("**/api/account/websites",async route=>{
+  if(route.request().method()==="POST"){mutation=route.request().postDataJSON();return json(route,{siteId:second});}
+  return json(route,{businessId,sites,capacity:{websiteLimit:2,websitesUsed:2,websitesRemaining:0,projectLimit:7,pagesPerWebsite:4,locationPagesPerWebsite:1},lifecycleEnabled:true});
+ });
+ await page.route("**/api/account/website-addons",route=>json(route,{businessId,enabled:false,price:null,orders:[]}));
+ await page.route("**/api/account/websites/*/preview",route=>json(route,{error:"Fixture thumbnail unavailable"},503));
+ await navigateTo(page,"/dashboard/websites");
+ await expect(page.getByRole("heading",{name:"My Websites"})).toBeVisible();
+ await expect(page.getByRole("button",{name:"Create site"})).toBeDisabled();
+ await page.getByRole("button",{name:"List view"}).click();
+ const secondary=page.locator("article").filter({hasText:"Secondary fixture"});
+ await expect(secondary.getByRole("link",{name:"Manage site"})).toHaveAttribute("href","/dashboard/websites/"+second);
+ await expect(secondary.getByRole("button",{name:"Duplicate"})).toBeDisabled();
+ page.once("dialog",dialog=>dialog.accept());
+ await secondary.getByRole("button",{name:"Archive"}).click();
+ await expect.poll(()=>mutation?.siteId).toBe(second);
+ await expect.poll(()=>mutation?.action).toBe("archive");
+});

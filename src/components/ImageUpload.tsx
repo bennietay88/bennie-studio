@@ -3,6 +3,7 @@ import { Upload, X, Loader2, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/src/lib/supabase";
 import { Button } from "./ui/button";
 import { toast } from "sonner";
+import {portfolioRequest} from "../lib/websitePortfolioApi";
 
 interface ImageUploadProps {
   onUpload: (url: string) => void;
@@ -10,6 +11,7 @@ interface ImageUploadProps {
   label?: string;
   description?: string;
   bucket?: string;
+  websiteId?: string;
 }
 
 export function ImageUpload({
@@ -18,6 +20,7 @@ export function ImageUpload({
   label = "Image",
   description = "Upload a JPG, PNG or WebP image. Max 5MB.",
   bucket = "website-assets",
+  websiteId,
 }: ImageUploadProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +47,12 @@ export function ImageUpload({
 
       setUploading(true);
 
+      if(websiteId){
+        const result=await portfolioRequest<{bucket:string;path:string;token:string;publicUrl:string}>("/api/account/websites/"+encodeURIComponent(websiteId)+"/asset-upload",{method:"POST",body:JSON.stringify({mimeType:file.type,size:file.size})});
+        const {error}=await supabase.storage.from(result.bucket).uploadToSignedUrl(result.path,result.token,file,{contentType:file.type});
+        if(error)throw error;
+        onUpload(result.publicUrl);toast.success("Image uploaded successfully");return;
+      }
       const fileExt = file.name.split(".").pop();
       const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
       const filePath = `uploads/${fileName}`;

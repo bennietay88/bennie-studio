@@ -1,3 +1,7 @@
+import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
+import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
+import { registerWebsiteAddonRoutes, handleWebsiteAddonWebhook, cancelWebsiteAddonsWithParent } from "../server/websiteAddonRoutes.js";
+import { registerWebsitePortfolioRoutes } from "../server/websitePortfolioRoutes.js";
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
 import { buildInboundNewsletterMessages, INBOUND_NEWSLETTER_CONSENT, isSupportedNewsletterMarket } from "../server/inboundNewsletter.js";
 import express from "express";
@@ -1395,6 +1399,9 @@ async function startServer() {
     },
   );
 
+  registerWebsitePortfolioRoutes(app, supabaseAdmin, authenticate, getProfileForUser);
+  registerWebsiteAddonRoutes(app, supabaseAdmin, authenticate, getProfileForUser, getStripe);
+
   // Customer self-service website handover. This export is scoped to the
   // authenticated user's business and contains no billing records or secrets.
   app.get("/api/account/website-export", authenticate, async (req: any, res: any) => {
@@ -2669,7 +2676,7 @@ async function startServer() {
       }
       if (!claim.claimed) return res.json({ received: true, duplicate: true, reason: claim.reason });
       try {
-      if (!(UNIFIED_FUNNEL_TIERS_ENABLED && await handleUnifiedFunnelTierWebhook(supabaseAdmin, event)) && !(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
+      if (!(await handleWebsiteAddonWebhook(supabaseAdmin, getStripe, event)) && !(UNIFIED_FUNNEL_TIERS_ENABLED && await handleUnifiedFunnelTierWebhook(supabaseAdmin, event)) && !(await handleSimpleFunnelAddonWebhook(supabaseAdmin, getStripe, event))) switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as Stripe.Checkout.Session;
           const businessId = session.metadata?.businessId;
@@ -3475,6 +3482,7 @@ async function startServer() {
 
             if (cancelledBusiness) {
               await cancelSimpleFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
+              await cancelWebsiteAddonsWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
               if (UNIFIED_FUNNEL_TIERS_ENABLED) await cancelUnifiedFunnelWithParent(supabaseAdmin, getStripe, cancelledBusiness.id);
               await insertBillingLifecycleEvent({
                 business_id: cancelledBusiness.id,
@@ -6602,6 +6610,7 @@ async function startServer() {
     const aiGenerateBody = validateBody(
       z.object({
         project_id: UUID_SCHEMA.optional().nullable(),
+        website_id: UUID_SCHEMA.optional().nullable(),
         feature_key: z.string().trim().min(1).max(80),
         input: z.any(),
       }),
@@ -6610,7 +6619,7 @@ async function startServer() {
     );
     if (!aiGenerateBody) return;
 
-    const { project_id, feature_key, input } = aiGenerateBody;
+    const { project_id, website_id, feature_key, input } = aiGenerateBody;
     const userId = req.user.id;
 
     // Helper to determine if we should fallback (Permanent Fix for missing keys or limits)
@@ -6626,6 +6635,14 @@ async function startServer() {
     }
 
     try {
+      if(website_id){
+        if(!project_id||process.env.MULTI_SITE_DRAFT_LIFECYCLE!=="true")return res.status(403).json({error:"Website-specific AI is not enabled."});
+        const profile=await getProfileForUser(userId);
+        if(profile?.status!=="active"||(profile.role!=="super_admin"&&(profile.role!=="business_admin"||profile.business_id!==project_id)))return res.status(403).json({error:"Website administrator access required."});
+        const {data:site,error:siteError}=await supabaseAdmin.from("websites").select("id").eq("id",website_id).eq("business_id",project_id).eq("status","draft").eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
+        if(siteError)return res.status(503).json({error:"Website access verification unavailable."});
+        if(!site)return res.status(404).json({error:"Draft website not found."});
+      }
       // 1. Get Feature Config
       const { data: feature, error: featureError } = await supabaseAdmin
         .from("ai_feature_costs")
@@ -6832,6 +6849,7 @@ async function startServer() {
         await supabaseAdmin.from("ai_generation_logs").insert({
           user_id: userId,
           project_id,
+          ...(website_id?{website_id}:{}),
           feature_key,
           provider: selectedProvider,
           model: selectedModel,
@@ -6880,6 +6898,7 @@ async function startServer() {
       await supabaseAdmin.from("ai_generation_logs").insert({
         user_id: userId,
         project_id,
+        ...(website_id?{website_id}:{}),
         feature_key,
         provider: selectedProvider,
         model: selectedModel,
@@ -13170,7 +13189,7 @@ async function startServer() {
       });
       const [{ data: business, error: businessError }, { data: website, error: websiteError }, { data: project, error: projectError }] = await Promise.all([
         supabaseAdmin.from("businesses").select("id,name,lifecycle_stage").eq("id", businessId).maybeSingle(),
-        supabaseAdmin.from("websites").select("id,status,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,updated_at").eq("business_id", businessId).eq("is_primary",true).maybeSingle(),
         supabaseAdmin.from("projects").select("id,status").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       if (businessError) throw businessError;
@@ -13374,7 +13393,7 @@ async function startServer() {
 
       const [businessResult, websiteResult, projectResult, approvalResult, onboardingResult] = await Promise.all([
         supabaseAdmin.from("businesses").select("id,name,custom_domain,custom_domain_status,ssl_status,lifecycle_stage,onboarding_completed_at,ga_measurement_id,meta_pixel_id,tracking_scripts_header,tracking_scripts_footer").eq("id", businessId).maybeSingle(),
-        supabaseAdmin.from("websites").select("id,status,pages,theme,seo,button_health,validation_report,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,pages,theme,seo,button_health,validation_report,updated_at").eq("business_id", businessId).eq("is_primary",true).maybeSingle(),
         supabaseAdmin.from("projects").select("id,status,launch_blocker,delivery_checklist,target_launch_date,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("customer_approvals").select("id,status,responded_at,updated_at").eq("business_id", businessId).order("requested_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("onboarding_sessions").select("id,status,progress,current_step,updated_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -13553,8 +13572,7 @@ async function startServer() {
             .from("websites")
             .select("id,status,seo,updated_at")
             .eq("business_id", businessId)
-            .order("updated_at", { ascending: false })
-            .limit(1)
+            .eq("is_primary",true)
             .maybeSingle(),
           supabaseAdmin
             .from("projects")
@@ -13670,6 +13688,7 @@ async function startServer() {
               .select("id,business_id")
               .eq("id", body.websiteId)
               .eq("business_id", body.businessId)
+              .eq("is_primary",true)
               .maybeSingle();
             if (onboardingWebsiteError) throw onboardingWebsiteError;
             if (!onboardingWebsite) {
@@ -14168,6 +14187,7 @@ async function startServer() {
     const publicLeadBody = validateBody(
       z.object({
         businessId: UUID_SCHEMA,
+        websiteId: UUID_SCHEMA.optional(),
         name: TEXT_SCHEMA,
         email: EMAIL_SCHEMA,
         phone: z.string().trim().max(80).optional().nullable(),
@@ -14189,16 +14209,17 @@ async function startServer() {
     );
     if (!publicLeadBody) return;
 
-    const { businessId, name, email, phone, service, message, visitorId, sessionId, refCode, source, sourcePage, formName, consentText, consentTimestamp, marketingConsent, metadata } = publicLeadBody;
+    const { businessId, websiteId, name, email, phone, service, message, visitorId, sessionId, refCode, source, sourcePage, formName, consentText, consentTimestamp, marketingConsent, metadata } = publicLeadBody;
 
     try {
-      const { data: websiteRecord } = await supabaseAdmin
-        .from("websites")
-        .select("id,status")
-        .eq("business_id", businessId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const explicitId = websiteId || metadata?.websiteId;
+      if (explicitId && !UUID_SCHEMA.safeParse(explicitId).success) return res.status(400).json({error:"Invalid website ID"});
+      let siteQuery = supabaseAdmin.from("websites").select("id,status,is_primary").eq("business_id",businessId).eq("is_internal_pilot",false);
+      if(explicitId) siteQuery=siteQuery.eq("id",explicitId);
+      const {data:siteRows,error:siteError}=await siteQuery.order("is_primary",{ascending:false}).limit(2);
+      if(siteError)throw siteError;
+      const selectedSite=explicitId?siteRows?.[0]:choosePrimaryWebsite(siteRows||[]);
+      const websiteRecord=selectedSite?.status==="published"?selectedSite:null;
 
       if (!websiteRecord) {
         await supabaseAdmin.from("sync_logs").insert({
@@ -14235,18 +14256,19 @@ async function startServer() {
           form_version: metadata?.formVersion || "gdpr_form_v1",
           raw_fields: {
             service,
-            websiteId: websiteRecord.id,
             consentText,
             consentTimestamp,
             marketingConsent,
             sourcePage: sourcePage || req.get("referer") || null,
             formVersion: metadata?.formVersion || "gdpr_form_v1",
             ...(metadata || {}),
+            websiteId: websiteRecord.id,
           },
           status: "new",
         },
         {
           business_id: businessId,
+          website_id: websiteRecord.id,
           name,
           email,
           phone,
@@ -14257,6 +14279,7 @@ async function startServer() {
         },
         {
           business_id: businessId,
+          website_id: websiteRecord.id,
           name,
           email,
           phone,
@@ -14293,6 +14316,7 @@ async function startServer() {
         .from("tracking_events")
         .insert({
           business_id: businessId,
+          website_id: websiteRecord.id,
           event_type: "lead_form_submit",
           source_platform: "website",
           source_page: sourcePage || req.get("referer") || null,
@@ -14316,6 +14340,7 @@ async function startServer() {
           .from("page_views")
           .insert({
             business_id: businessId,
+            website_id: websiteRecord.id,
             visitor_id: visitorId || lead.id,
             session_id: sessionId || visitorId || lead.id,
             page_path: sourcePage || "/contact",
@@ -14417,6 +14442,7 @@ async function startServer() {
       const interactionBody = validateBody(
         z.object({
           businessId: UUID_SCHEMA,
+        websiteId: UUID_SCHEMA.optional(),
           visitorId: z.string().trim().max(120).optional().nullable(),
           sessionId: z.string().trim().max(120).optional().nullable(),
           eventType: z.string().trim().min(1).max(80),
@@ -14436,6 +14462,7 @@ async function startServer() {
 
       const {
         businessId,
+        websiteId,
         visitorId,
         sessionId,
         eventType,
@@ -14450,12 +14477,12 @@ async function startServer() {
       } = interactionBody;
 
       try {
-        const { data: publishedSite } = await supabaseAdmin
-          .from("websites")
-          .select("id")
-          .eq("business_id", businessId)
-          .eq("status", "published")
-          .maybeSingle();
+        let siteQuery=supabaseAdmin.from("websites").select("id,status,is_primary").eq("business_id",businessId).eq("is_internal_pilot",false);
+        if(websiteId)siteQuery=siteQuery.eq("id",websiteId);
+        const {data:siteRows,error:siteError}=await siteQuery.order("is_primary",{ascending:false}).limit(2);
+        if(siteError)throw siteError;
+        const selectedSite=websiteId?siteRows?.[0]:choosePrimaryWebsite(siteRows||[]);
+        const publishedSite=selectedSite?.status==="published"?selectedSite:null;
 
         if (!publishedSite) {
           return res.status(404).json({ error: "Published website not found" });
@@ -14496,6 +14523,8 @@ async function startServer() {
             .select("id")
             .eq("business_id", businessId)
             .eq("visitor_id", normalizedVisitorId)
+            .eq("website_id", publishedSite.id)
+            .limit(1)
             .maybeSingle();
 
           leadId = existingLead?.id || null;
@@ -14511,6 +14540,7 @@ async function startServer() {
               .from("leads")
               .insert({
                 business_id: businessId,
+                website_id: publishedSite.id,
                 name: name || "Anonymous Website Visitor",
                 email: email || `visitor-${visitorHash}@bennietay.local`,
                 phone,
@@ -14531,6 +14561,7 @@ async function startServer() {
           .from("page_views")
           .insert({
             business_id: businessId,
+            website_id: publishedSite.id,
             visitor_id: normalizedVisitorId,
             session_id: sessionId || normalizedVisitorId,
             page_path: `${eventType}:${pagePath || "/"}`,
@@ -14545,11 +14576,13 @@ async function startServer() {
           .from("tracking_events")
           .insert({
             business_id: businessId,
+            website_id: publishedSite.id,
             event_type: eventType,
             source_platform: "website",
             source_page: pagePath,
             metadata: {
               ...metadata,
+              websiteId: publishedSite.id,
               leadId,
               visitorId: normalizedVisitorId,
               label: actionLabel,
@@ -15169,6 +15202,27 @@ async function startServer() {
         return res.status(404).json({ error: "Domain not found.", code: "DOMAIN_NOT_FOUND" });
       }
 
+      res.setHeader("Cache-Control","no-store");
+      if (tenant.kind === "custom_domain" && process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true" && process.env.MULTI_SITE_DOMAINS === "true" && process.env.MULTI_SITE_PUBLICATION === "true") {
+        const {data:rows,error}=await supabaseAdmin.from("websites").select(SECONDARY_SITE_ROUTE_FIELDS).eq("custom_domain",host).eq("is_primary",false).limit(2);
+        if(error)throw error;
+        if((rows||[]).length>1)return res.status(409).json({error:"This domain is not available.",code:"AMBIGUOUS_DOMAIN"});
+        if(rows?.length===1){
+          const site=rows[0] as SecondaryRouteRow;
+          const failure=secondaryDomainFailure(site,host);
+          if(failure)return res.status(failure.status).json({error:failure.message,code:failure.code});
+          const {data:owner,error:ownerError}=await supabaseAdmin.from("businesses").select("id,name,status,subscription_status").eq("id",site.business_id).maybeSingle();
+          if(ownerError)throw ownerError;
+          if(!owner||owner.status!=="active"||owner.subscription_status!=="active")return res.status(403).json({error:"This website is not available.",code:"BUSINESS_INACTIVE"});
+          const {data:allowed,error:quotaError}=await supabaseAdmin.rpc("website_slot_available",{p_business:site.business_id,p_website:site.id});
+          if(quotaError)throw quotaError;
+          if(!allowed)return res.status(402).json({error:"This website is not available.",code:"WEBSITE_ALLOWANCE_EXCEEDED"});
+          const {data:content,error:contentError}=await supabaseAdmin.from("websites").select("id,business_id,theme,pages,seo,status,updated_at,is_primary,is_internal_pilot,archived_at").eq("id",site.id).eq("business_id",site.business_id).eq("status","published").eq("custom_domain",host).eq("custom_domain_status","connected").eq("ssl_status","issued").eq("custom_domain_suspended",false).eq("custom_domain_permission_confirmed",true).is("archived_at",null).eq("is_internal_pilot",false).maybeSingle();
+          if(contentError)throw contentError;if(!content)return res.status(404).json({error:"This website is not available."});
+          return res.json({businessId:owner.id,businessName:owner.name,websiteId:site.id,tenantKind:tenant.kind,status:"connected",...(req.query.content==="1"?{website:content}:{})});
+        }
+      }
+
       const businessSelect = "id, name, subdomain, custom_domain, custom_domain_status, custom_domain_verified_at, custom_domain_suspended, custom_domain_permission_confirmed, ssl_status, status, subscription_status, subscription_grace_until, trial_ends_at";
       const query = supabaseAdmin.from("businesses").select(businessSelect);
       const { data: businesses, error: businessError } =
@@ -15233,17 +15287,15 @@ async function startServer() {
         }
       }
 
-      const { data: website, error: websiteError } = await supabaseAdmin
+      const { data: websiteRows, error: websiteError } = await supabaseAdmin
         .from("websites")
-        .select("id, business_id, status")
+        .select("id, business_id, status, is_primary")
         .eq("business_id", business.id)
-        .eq("status", "published")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
+        .order("is_primary", { ascending: false })
+        .limit(2);
       if (websiteError) throw websiteError;
-      if (!website) {
+      const website = choosePrimaryWebsite(websiteRows || []);
+      if (!website || website.status !== "published") {
         return publicDomainFailure(404, "WEBSITE_NOT_PUBLISHED", "This domain is not connected to a published website yet.");
       }
       if (website.business_id !== business.id) {
@@ -15301,6 +15353,10 @@ async function startServer() {
         });
       }
 
+      if(process.env.MULTI_SITE_DRAFT_LIFECYCLE==="true"){
+        const {data:claimed,error:ce}=await supabaseAdmin.from("websites").select("id").in("custom_domain",candidates).eq("is_primary",false).limit(1);
+        if(ce)throw ce;if(claimed?.length)return res.status(409).json({error:"This domain is reserved by an independent website."});
+      }
       const vercelDomain = await ensureVercelProjectDomain(domain).catch((error: any) => ({
         configured: isVercelDomainsConfigured(),
         error: error?.message || "Vercel domain sync failed",
@@ -15395,6 +15451,9 @@ async function startServer() {
 
     try {
       await assertBusinessAdminAccess(req.user.id, body.businessId, ["delivery"]);
+      const {data:assigned,error:assignmentError}=await supabaseAdmin.from("businesses").select("custom_domain").eq("id",body.businessId).single();
+      if(assignmentError)throw assignmentError;
+      if(normalizeDomainInput(assigned?.custom_domain||"")!==domain)return res.status(409).json({error:"Domain is not assigned to this business."});
       if (isVercelDomainsConfigured()) {
         await removeVercelProjectDomain(domain).catch((error: any) => {
           if (Number(error?.status) !== 404) throw error;
@@ -15413,7 +15472,7 @@ async function startServer() {
           ssl_checked_at: new Date().toISOString(),
           domain_dns_records: [],
         })
-        .eq("id", body.businessId);
+        .eq("id", body.businessId).eq("custom_domain",assigned.custom_domain);
       if (updateError) throw updateError;
       res.json({ success: true });
     } catch (error: any) {
