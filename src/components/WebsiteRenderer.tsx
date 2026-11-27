@@ -777,7 +777,13 @@ export function WebsiteRenderer({
         if (requestedWebsiteId) query = query.eq("id", requestedWebsiteId);
         const { data: rows, error } = await query.order("is_primary", { ascending: false }).limit(2);
         if (error) throw error;
-        const selected = requestedWebsiteId ? rows?.[0] : choosePrimaryWebsite(rows || []);
+        let selected = requestedWebsiteId ? rows?.[0] : choosePrimaryWebsite(rows || []);
+        if(websiteIdOverride&&(!selected||selected.is_primary===false)){
+          const response=await fetch("/api/custom-domain/resolve?host="+encodeURIComponent(window.location.hostname)+"&content=1",{cache:"no-store"});
+          const payload=await response.json();
+          if(!response.ok||payload.websiteId!==websiteIdOverride||payload.businessId!==businessId)throw Error("Website unavailable");
+          if(payload.website?.id===websiteIdOverride&&payload.website?.business_id===businessId)selected=payload.website;
+        }
         const data = selected && !selected.is_internal_pilot && !selected.archived_at &&
           (draftPreview || (selected.status === "published" && (selected.is_primary !== false || Boolean(websiteIdOverride)))) ? selected : null;
 

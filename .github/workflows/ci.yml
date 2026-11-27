@@ -117,6 +117,33 @@ jobs:
       - name: Run desktop and mobile Chromium end-to-end tests
         run: npm run e2e -- --project=chromium-desktop --project=mobile-chromium
 
+  multi-site-sql:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: isolated_test_only
+          POSTGRES_DB: multisite_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate staged migration and multi-tenant contracts in disposable PostgreSQL
+        env:
+          PGPASSWORD: isolated_test_only
+        run: |
+          set -euo pipefail
+          for file in supabase/rollout/tests/multi_site_fixture.sql supabase/rollout/multi_site_lifecycle.sql supabase/rollout/tests/multi_site_assertions.sql; do
+            psql -h 127.0.0.1 -U postgres -d multisite_test -v ON_ERROR_STOP=1 -f "$file"
+          done
+
   production-access-smoke:
     # Read-only production access check after full CI, with no credentials.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.verify.outputs.code_changed == 'true'

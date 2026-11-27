@@ -1,9 +1,9 @@
-import {randomBytes} from "node:crypto";
+import {randomBytes,randomUUID} from "node:crypto";
 import {Resolver} from "node:dns/promises";
 import {connect} from "node:tls";
 import {z} from "zod";
 import {classifyTenantHost, getPlatformHosts, getWaasRootDomains, getAcceptedVercelCnames, getPrimaryVercelCname, isValidCustomDomain, normalizeDomainInput, VERCEL_APEX_A} from "../src/lib/tenantDomains.js";
-import {ensureVercelProjectDomain, isVercelDomainsConfigured} from "./vercelDomains.js";
+import {ensureVercelProjectDomain, isVercelDomainsConfigured, removeVercelProjectDomain} from "./vercelDomains.js";
 
 const select="id,business_id,status,is_primary,archived_at,custom_domain,domain_challenge,custom_domain_status,custom_domain_verified_at,custom_domain_permission_confirmed,custom_domain_suspended,ssl_status,updated_at";
 export function validSecondaryDomain(raw:string):string|null {
@@ -41,6 +41,19 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
     if(error)throw error;
     if(!site||site.is_primary){res.status(404).json({error:"Secondary website not found"});return null;}
     return site;
+  }
+  async function lockDomain(site:any){
+    const host=validSecondaryDomain(site.custom_domain||"");
+    if(!host)throw Error("Invalid existing website domain");
+    const canonical=host.replace(/^www\./,"");
+    const token=randomUUID();
+    const {error}=await db.from("website_domain_operation_locks").insert({host:canonical,token,website_id:site.id});
+    if(error)throw error;
+    return async()=>{const {error:e}=await db.from("website_domain_operation_locks").delete().eq("host",canonical).eq("token",token);if(e)console.error("Website domain lock release failed",{code:e.code});};
+  }
+  async function reload(site:any){
+    const {data,error}=await db.from("websites").select(select).eq("id",site.id).eq("business_id",site.business_id).eq("updated_at",site.updated_at).eq("status","draft").is("archived_at",null).maybeSingle();
+    if(error)throw error;return data;
   }
   function response(site:any){
     return {siteId:site.id,businessId:site.business_id,enabled:enabled(),domain:site.custom_domain||"",updatedAt:site.updated_at,editable:site.status==="draft"&&!site.custom_domain_suspended,status:site.custom_domain_status||"not_connected",ssl:site.ssl_status||"not_connected",verifiedAt:site.custom_domain_verified_at||null,challenge:site.domain_challenge?{name:"_bennie-verify."+site.custom_domain,value:site.domain_challenge}:null,dns:{a:VERCEL_APEX_A,cname:getPrimaryVercelCname()}};
@@ -82,11 +95,19 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
       const site=await load(req,res);if(!site)return;
       if(site.status!=="draft"||site.custom_domain_suspended||site.updated_at!==input.data.updatedAt)return res.status(409).json({error:"Unpublish or refresh this website before changing its domain."});
       if(host===site.custom_domain)return res.json(response(site));
-      // Change routing reservation atomically; do not delete the shared provider alias
-      // while a concurrent verification or reassignment could be using it.
-      const {data,error}=await db.from("websites").update({custom_domain:host,domain_challenge:host?"bennie-"+randomBytes(32).toString("hex"):null,custom_domain_permission_confirmed:Boolean(host),custom_domain_status:"dns_pending",custom_domain_verified_at:null,ssl_status:"pending",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("is_primary",false).eq("status","draft").eq("updated_at",site.updated_at).is("archived_at",null).select(select).maybeSingle();
+      let unlock:(()=>Promise<void>)|undefined;
+      try{
+        if(site.custom_domain){
+          unlock=await lockDomain(site);
+          if(!await reload(site))return res.status(409).json({error:"Website changed. Refresh and retry."});
+          if(!isVercelDomainsConfigured())return res.status(503).json({error:"Hosting provider is not configured; domain reservation retained."});
+          // An old reservation must remain present until deletion succeeds.
+          await removeVercelProjectDomain(site.custom_domain).catch((e:any)=>{if(Number(e?.status)!==404)throw e;});
+        }
+      const {data,error}=await db.from("websites").update({custom_domain:host,domain_challenge:host?"bennie-"+randomBytes(32).toString("hex"):null,custom_domain_permission_confirmed:Boolean(host),custom_domain_status:host?"dns_pending":"not_connected",custom_domain_verified_at:null,ssl_status:host?"pending":"not_connected",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("is_primary",false).eq("status","draft").eq("updated_at",site.updated_at).is("archived_at",null).select(select).maybeSingle();
       if(error)throw error;if(!data)return res.status(409).json({error:"Website changed. Refresh and retry."});
       return res.json(response(data));
+      }finally{if(unlock)await unlock();}
     }catch(e){return fail(res,e);}
   });
   app.post("/api/account/websites/:siteId/domain/verify",authenticate,async(req:any,res:any)=>{
@@ -95,6 +116,9 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
       const site=await load(req,res);if(!site)return;
       const host=validSecondaryDomain(site.custom_domain||"");
       if(!host||!site.domain_challenge||!site.custom_domain_permission_confirmed||site.custom_domain_suspended||site.status!=="draft")return res.status(409).json({error:"Reserve a domain for an active draft first."});
+      const unlock=await lockDomain(site);
+      try{
+      if(!await reload(site))return res.status(409).json({error:"Website changed. Refresh and retry."});
       const resolver=new Resolver({timeout:3000,tries:2});
       const [txt,a,cname]=await Promise.all([resolver.resolveTxt("_bennie-verify."+host).catch(()=>[]),resolver.resolve4(host).catch(()=>[]),resolver.resolveCname(host).catch(()=>[])]);
       const owned=txtMatches(txt,site.domain_challenge);
@@ -110,6 +134,7 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
       if(error)throw error;
       if(!data)return res.status(409).json({error:"Website changed during verification. Retry."});
       return res.json({...response(data),checks:{owned,pointed,providerVerified,ssl}});
+      }finally{await unlock();}
     }catch(e){return fail(res,e);}
   });
 }

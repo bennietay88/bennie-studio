@@ -15217,7 +15217,9 @@ async function startServer() {
           const {data:allowed,error:quotaError}=await supabaseAdmin.rpc("website_slot_available",{p_business:site.business_id,p_website:site.id});
           if(quotaError)throw quotaError;
           if(!allowed)return res.status(402).json({error:"This website is not available.",code:"WEBSITE_ALLOWANCE_EXCEEDED"});
-          return res.json({businessId:owner.id,businessName:owner.name,websiteId:site.id,tenantKind:tenant.kind,status:"connected"});
+          const {data:content,error:contentError}=await supabaseAdmin.from("websites").select("id,business_id,theme,pages,seo,status,updated_at,is_primary,is_internal_pilot,archived_at").eq("id",site.id).eq("business_id",site.business_id).eq("status","published").eq("custom_domain",host).eq("custom_domain_status","connected").eq("ssl_status","issued").eq("custom_domain_suspended",false).eq("custom_domain_permission_confirmed",true).is("archived_at",null).eq("is_internal_pilot",false).maybeSingle();
+          if(contentError)throw contentError;if(!content)return res.status(404).json({error:"This website is not available."});
+          return res.json({businessId:owner.id,businessName:owner.name,websiteId:site.id,tenantKind:tenant.kind,status:"connected",...(req.query.content==="1"?{website:content}:{})});
         }
       }
 

@@ -76,6 +76,9 @@ begin
     select count(*) into used_slots from public.websites
       where business_id=new.business_id and archived_at is null
       and (tg_op='INSERT' or id<>new.id);
+    if used_slots>0 and not exists(select 1 from public.websites where business_id=new.business_id and is_primary and archived_at is null) then
+      raise exception 'PRIMARY_WEBSITE_RECONCILIATION_REQUIRED' using errcode='23514';
+    end if;
     if used_slots>=coalesce(slot_limit,1) then
       raise exception 'WEBSITE_LIMIT_REACHED' using errcode='23514';
     end if;
@@ -395,8 +398,7 @@ returns jsonb language sql stable security invoker set search_path='' as $usage$
  select jsonb_build_object(
   'aiCredits',coalesce((select sum(coalesce(credits_charged,0)) from public.ai_generation_logs where project_id=p_business and website_id=p_website and created_at>=p_since),0),
   'aiRequests',(select count(*) from public.ai_generation_logs where project_id=p_business and website_id=p_website and created_at>=p_since),
-  'storageBytes',coalesce((select sum(case when metadata->>'size' ~ '^[0-9]{1,15}
- then (metadata->>'size')::bigint else 0 end) from storage.objects where bucket_id='website-assets' and name like 'sites/'||p_business::text||'/'||p_website::text||'/%'),0),
+  'storageBytes',coalesce((select sum(case when metadata->>'size' ~ '^[0-9]{1,15}$' then (metadata->>'size')::bigint else 0 end) from storage.objects where bucket_id='website-assets' and name like 'sites/'||p_business::text||'/'||p_website::text||'/%'),0),
   'storageObjects',(select count(*) from storage.objects where bucket_id='website-assets' and name like 'sites/'||p_business::text||'/'||p_website::text||'/%'))
  where exists(select 1 from public.websites where id=p_website and business_id=p_business);
 $usage$;
@@ -415,4 +417,40 @@ returns boolean language sql stable security invoker set search_path='' as $slot
 $slots$;
 revoke all on function public.website_slot_available(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.website_slot_available(uuid,uuid) to service_role;
+-- The pre-existing broad ALL policy is permissive, so merely adding a second
+-- permissive tenant policy would not restrict it. These policies are restrictive.
+drop policy if exists multi_site_authenticated_read on public.websites;
+create policy multi_site_authenticated_read on public.websites as restrictive for select to authenticated
+using (not is_internal_pilot and (private.is_business_member(business_id) or private.is_super_admin()
+ or public.has_platform_permission('customer_health') or public.has_platform_permission('delivery')
+ or (is_primary and status='published')));
+drop policy if exists multi_site_authenticated_insert on public.websites;
+create policy multi_site_authenticated_insert on public.websites as restrictive for insert to authenticated
+with check (not is_internal_pilot and (private.is_business_admin(business_id) or private.is_super_admin()));
+drop policy if exists multi_site_authenticated_update on public.websites;
+create policy multi_site_authenticated_update on public.websites as restrictive for update to authenticated
+using (not is_internal_pilot and (private.is_business_admin(business_id) or private.is_super_admin()))
+with check (not is_internal_pilot and (private.is_business_admin(business_id) or private.is_super_admin()));
+drop policy if exists multi_site_authenticated_delete on public.websites;
+create policy multi_site_authenticated_delete on public.websites as restrictive for delete to authenticated
+using (is_primary and not is_internal_pilot and (private.is_business_admin(business_id) or private.is_super_admin()));
+drop policy if exists multi_site_public_primary_only on public.websites;
+create policy multi_site_public_primary_only on public.websites as restrictive for select to anon
+using (is_primary and status='published' and not is_internal_pilot);
+-- Site-scoped writes use the service's signed upload path, never the legacy
+-- authenticated catch-all. Shared historical uploads remain unaffected.
+drop policy if exists multi_site_signed_storage_only on storage.objects;
+create policy multi_site_signed_storage_only on storage.objects as restrictive for insert to authenticated
+with check (bucket_id<>'website-assets' or name not like 'sites/%');
+
+-- Durable mutual exclusion: retain the hostname reservation until provider
+-- removal succeeds. A crashed operation remains locked for operator review;
+-- no timeout takeover can race an in-flight provider request.
+create table if not exists public.website_domain_operation_locks(
+ host text primary key, token uuid not null, website_id uuid not null references public.websites(id) on delete restrict,
+ created_at timestamptz not null default now()
+);
+alter table public.website_domain_operation_locks enable row level security;
+revoke all on public.website_domain_operation_locks from public,anon,authenticated;
+grant select,insert,delete on public.website_domain_operation_locks to service_role;
 commit;
