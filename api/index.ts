@@ -1362,6 +1362,14 @@ async function startServer() {
     return res.json({ packageVersion: "1.0", period: { from: from.toISOString(), to: to.toISOString() }, disclaimer: "Management records prepared for accountant review; not tax advice or a statutory filing.", summary: { income, refunds, expenses, operatingProfitEstimate: income - refunds - expenses, transactionCount: rows.length }, transactions: rows, invoices: invoices.data || [], vendorBills: bills.data || [], unresolvedItems: attention.data || [], closePeriod: close.data || null, questionsForAccountant: (attention.data || []).map((item: any) => item.title || item.issue_code) });
   });
 
+  // Only the server-owned, database-guarded marker exempts platform billing.
+  async function isInternalWorkspace(businessId: string | null | undefined): Promise<boolean> {
+    if (!businessId) return false;
+    const { data, error } = await supabaseAdmin.from("businesses").select("internal_access_mode").eq("id",businessId).maybeSingle();
+    if (error) throw error;
+    return data?.internal_access_mode === "owner" || data?.internal_access_mode === "plan_test";
+  }
+  const internalCheckoutDenied = (res: any) => res.status(409).json({error:"Internal workspaces do not require platform checkout. Change the package through Super Admin.",code:"INTERNAL_BILLING_EXEMPT"});
   const aiAccessGuard = async (req: any, res: any, next: any) => {
     try {
       const profile = await getProfileForUser(req.user.id);
@@ -1371,6 +1379,18 @@ async function startServer() {
         if (!flags.internal_ai_content_engine) return res.status(403).json({ error: "INTERNAL_AI_DISABLED", code: "INTERNAL_AI_DISABLED" });
         req.aiInternal = true;
         return next();
+      }
+      if (profile.business_id) {
+        const {data: internal,error}=await supabaseAdmin.from("businesses").select("internal_access_mode,plan,status").eq("id",profile.business_id).maybeSingle();
+        if(error)throw error;
+        if(internal?.internal_access_mode && internal.status==="active"){
+          if(internal.internal_access_mode==="owner" && flags.internal_ai_content_engine){req.aiInternal=true;return next();}
+          if(!flags.customer_ai_controls)return res.status(403).json({error:"CUSTOMER_AI_DISABLED",code:"CUSTOMER_AI_DISABLED"});
+          const {data:plan,error:planError}=await supabaseAdmin.from("plans").select("monthly_credit_limit").eq("slug",internal.plan).eq("is_active",true).maybeSingle();
+          if(planError)throw planError;
+          if(Number(plan?.monthly_credit_limit||0)<=0)return res.status(403).json({error:"CUSTOMER_AI_DISABLED",code:"CUSTOMER_AI_DISABLED"});
+          req.aiInternal=false;return next();
+        }
       }
       if (!flags.customer_ai_controls) return res.status(403).json({ error: "CUSTOMER_AI_DISABLED", code: "CUSTOMER_AI_DISABLED" });
       const { data: subscription } = await supabaseAdmin.from("user_subscriptions").select("plans(monthly_credit_limit,chatgpt_enabled)").eq("user_id", req.user.id).in("status", ["active", "trialing"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -4558,7 +4578,6 @@ async function startServer() {
         if (!lead || lead.preview_id !== body.previewId) {
           return res.status(403).json({ error: "This preview could not be verified." });
         }
-
         const raw = lead.raw_fields && typeof lead.raw_fields === "object" ? lead.raw_fields : {};
         const profile = raw.previewProfile && typeof raw.previewProfile === "object" ? raw.previewProfile : {};
         const businessName = String(profile.businessName || raw.businessName || lead.name || "Website preview").trim().slice(0, 160);
@@ -7679,6 +7698,7 @@ async function startServer() {
       if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
       const { data: proposal, error } = await supabaseAdmin.from("proposals").select("*").eq("id", req.params.proposalId).single();
       if (error || !proposal) return res.status(404).json({ error: "Proposal not found" });
+      if (await isInternalWorkspace(proposal.business_id)) return internalCheckoutDenied(res);
       if (proposal.checkout_url) return res.json({ checkoutUrl: proposal.checkout_url, reused: true });
       const market = String(proposal.config?.market || "US").toUpperCase();
       const currencyByMarket: Record<string, string> = { MY: "myr", SG: "sgd", GB: "gbp", UK: "gbp", US: "usd" };
@@ -8978,6 +8998,7 @@ async function startServer() {
           .maybeSingle();
         if (error) throw error;
         if (!business) return res.status(404).json({ error: "Business not found." });
+        if (await isInternalWorkspace(businessId)) return internalCheckoutDenied(res);
 
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
@@ -12067,6 +12088,7 @@ async function startServer() {
           return res.status(403).json({ error: "This preview could not be verified." });
         }
 
+        if (await isInternalWorkspace(lead.business_id)) return internalCheckoutDenied(res);
         const previewProfile = lead.raw_fields?.previewProfile || {};
         const businessName = String(
           previewProfile.businessName
@@ -12579,6 +12601,7 @@ async function startServer() {
 
     try {
       await assertBusinessAdminAccess(req.user.id, businessId);
+      if (await isInternalWorkspace(businessId)) return internalCheckoutDenied(res);
       const { data: checkoutBusiness } = await supabaseAdmin
         .from("businesses")
         .select("id,commercial_term_months,commercial_market,onboarding_steps")
@@ -14086,7 +14109,8 @@ async function startServer() {
           const { data: activeBusinesses } = await supabaseAdmin
             .from("businesses")
             .select("plan, subscription_status, commercial_product_slug, commercial_market")
-            .eq("status", "active");
+            .eq("status", "active")
+            .is("internal_access_mode",null);
 
           const { data: currentPrices } = await supabaseAdmin
             .from("commercial_market_prices")

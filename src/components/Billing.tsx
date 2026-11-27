@@ -32,6 +32,7 @@ export const Billing = () => {
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [internalMode,setInternalMode]=useState<string|null>(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -51,6 +52,7 @@ export const Billing = () => {
     // the page usable so they can select a plan and start checkout instead of
     // leaving the screen in an infinite loading state.
     if (!profile?.businessId) {
+      setInternalMode(null);
       setBusiness(null);
       setLoading(false);
       return;
@@ -90,6 +92,7 @@ export const Billing = () => {
             : Date.now(),
         };
 
+        setInternalMode(data.internal_access_mode || null);
         setBusiness(mappedBusiness);
       } catch (err) {
         console.error("Error fetching business:", err);
@@ -158,6 +161,7 @@ export const Billing = () => {
     );
   }
 
+  if(internalMode && business) return <div className="space-y-4"><h1 className="text-3xl font-bold">Internal workspace</h1><div className="rounded-xl border border-slate-200 p-6"><h2 className="text-xl font-semibold">Complimentary platform access</h2><p className="mt-2">Mode: {internalMode==="owner"?"Owner development":"Customer package testing"}</p><p>Package: {business.plan}</p><p className="mt-4 text-sm text-slate-600">No platform setup fee or recurring subscription. Super Admin manages package and add-on access. External usage and services can still incur costs.</p></div></div>;
   const isSubscribed = business?.subscriptionStatus === "active";
   const isTrialing = business?.subscriptionStatus === "trialing";
   const isLegacyTrialPlan = ["starter", "business", "growth", "scale"].includes(
