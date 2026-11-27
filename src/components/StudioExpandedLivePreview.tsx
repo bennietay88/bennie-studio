@@ -1,5 +1,5 @@
 import React from "react";
-import { demoDesign, readableInk } from "../lib/demoDesignProfiles";
+import { demoDesign, demoNavigation, readableInk } from "../lib/demoDesignProfiles";
 import "../styles/demoDesigns.css";
 import { IndustryExperience } from "./IndustryExperience";
 import { DemoIndustryPhoto } from "./DemoIndustryPhoto";
@@ -104,11 +104,11 @@ export default function StudioExpandedLivePreview() {
     <header className="relative z-20 border-b border-current/10" style={{borderColor:spec.muted}}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-5 px-5 py-5 sm:px-8 lg:px-12">
         <Link to={path("home")} className="max-w-[14rem] shrink-0 text-xl font-bold tracking-tight sm:text-2xl">{spec.brand}<span className="mt-1 block text-[10px] font-medium uppercase tracking-[.16em] opacity-60">{spec.eyebrow}</span></Link>
-        <nav aria-label="Demo website navigation" className="hidden items-center gap-7 md:flex">{pages.map(p=><Link to={path(p)} key={p} aria-current={currentPage===p?"page":undefined} className={"text-sm capitalize transition-opacity hover:opacity-60 "+(p===currentPage?"font-bold underline underline-offset-8":"font-medium")}>{p}</Link>)}</nav>
+        <nav aria-label="Demo website navigation" className="hidden items-center gap-7 md:flex">{pages.map(p=><Link to={path(p)} key={p} aria-current={currentPage===p?"page":undefined} className={"text-sm capitalize transition-opacity hover:opacity-60 "+(p===currentPage?"font-bold underline underline-offset-8":"font-medium")}>{demoNavigation(spec.slug,p)}</Link>)}</nav>
         <div className="ml-auto hidden md:block">{action(spec.primaryAction)}</div>
         <button type="button" aria-label={mobileOpen?"Close demo navigation":"Open demo navigation"} aria-expanded={mobileOpen} onClick={()=>setMobileOpen(v=>!v)} className="ml-auto inline-flex h-11 w-11 items-center justify-center border md:hidden" style={{borderColor:spec.muted}}>{mobileOpen?<X size={22}/>:<Menu size={22}/>}</button>
       </div>
-      {mobileOpen&&<nav aria-label="Mobile demo navigation" className="flex flex-col gap-2 border-t px-5 py-5 md:hidden" style={{borderColor:spec.muted}}>{pages.map(p=><Link to={path(p)} onClick={()=>setMobileOpen(false)} key={p} className="rounded-md px-3 py-3 text-base font-semibold capitalize" style={{background:p===currentPage?spec.muted:"transparent"}}>{p}</Link>)}</nav>}
+      {mobileOpen&&<nav aria-label="Mobile demo navigation" className="flex flex-col gap-2 border-t px-5 py-5 md:hidden" style={{borderColor:spec.muted}}>{pages.map(p=><Link to={path(p)} onClick={()=>setMobileOpen(false)} key={p} className="rounded-md px-3 py-3 text-base font-semibold capitalize" style={{background:p===currentPage?spec.muted:"transparent"}}>{demoNavigation(spec.slug,p)}</Link>)}</nav>}
     </header>
     {currentPage==="home"&&<main>
       <section className={"bt-demo-hero mx-auto grid max-w-7xl items-center gap-10 px-5 py-16 sm:px-8 lg:gap-16 lg:px-12 lg:py-24 "+(spec.style==="photography"||spec.style==="editorial"||spec.style==="celebration"?"lg:grid-cols-[.92fr_1.08fr]":"lg:grid-cols-[1fr_1fr]")}>
@@ -134,9 +134,9 @@ export default function StudioExpandedLivePreview() {
       <section className="border-y" style={{borderColor:spec.muted,background:spec.muted,color:mutedInk}}><div className="mx-auto grid max-w-7xl gap-7 px-5 py-14 sm:px-8 lg:grid-cols-[1fr_auto] lg:items-center lg:px-12"><div><h2 className="font-serif text-3xl sm:text-4xl">A website experience shaped for your business.</h2><p className="mt-3 max-w-2xl text-sm leading-7 opacity-75">This is an illustrative concept. Bennie Studio can help explore a tailored managed website direction.</p></div><Link to={previewLink} className="inline-flex min-h-12 items-center justify-center gap-3 rounded-md px-6 py-3 text-sm font-bold text-white" style={{background:spec.accent,color:accentInk}}>Get a website preview <ArrowUpRight size={17}/></Link></div></section>
     </main>}
     {currentPage==="services"&&<main>
-      <PageIntro spec={spec} label="01 / Explore" title="Services with a clear next step." description={spec.intro}/>
+      <PageIntro spec={spec} label="01 / Explore" title={demoNavigation(spec.slug,"services")} description={spec.intro}/>
       <div className="mx-auto max-w-7xl px-5 pb-8 sm:px-8 lg:px-12"><DemoIndustryPhoto slug={spec.slug} tone={spec.muted} compact/></div>
-      <section className="mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-12">
+      <section className="bt-demo-inner-services mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-12">
         <div className="grid gap-6 lg:grid-cols-[.55fr_1fr]"><div className="flex flex-col gap-3" role="group" aria-label="Select a service">{spec.services.map((s,i)=><button key={s.title} aria-pressed={selected===i} type="button" onClick={()=>setSelected(i)} className={"flex min-h-20 items-center justify-between gap-3 border px-5 py-4 text-left text-lg font-semibold transition hover:opacity-80 "+rounded} style={{borderColor:spec.muted,background:selected===i?spec.foreground:spec.background,color:selected===i?spec.background:spec.foreground}}><span>{s.title}</span><ArrowRight size={18}/></button>)}</div>
           <div className={"min-h-[370px] p-8 sm:p-12 "+rounded} style={{background:spec.muted,color:mutedInk}}><span className="text-xs font-bold uppercase tracking-[.2em]">Service / 0{selected+1}</span><h2 className="mt-16 max-w-lg font-serif text-4xl sm:text-5xl">{spec.services[selected].title}</h2><p className="mt-6 max-w-xl leading-8 opacity-80">{spec.services[selected].detail}</p><div className="mt-9">{action("Discuss this option")}</div></div>
         </div>
@@ -144,13 +144,13 @@ export default function StudioExpandedLivePreview() {
       </section>
     </main>}
     {currentPage==="about"&&<main>
-      <PageIntro spec={spec} label="02 / Approach" title={spec.highlight} description={spec.intro}/>
+      <PageIntro spec={spec} label={demoNavigation(spec.slug,"about")} title={spec.highlight} description={spec.intro}/>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 pb-16 sm:px-8 lg:grid-cols-2 lg:px-12"><Artwork spec={spec}/><div className="flex flex-col justify-center"><p className="text-xs font-bold uppercase tracking-[.2em]" style={{color:spec.accent}}>Design philosophy</p><h2 className="mt-5 font-serif text-3xl sm:text-4xl">Thoughtful structure. Useful interactions.</h2><p className="mt-5 text-base leading-8 opacity-75">This fictional business website illustrates how service details, visual hierarchy and a clear enquiry path can work together. It does not represent a completed client project or claim measurable results.</p><div className="mt-8">{action("Start a conversation")}</div></div></section>
       <section className="px-5 py-16 sm:px-8 lg:px-12" style={{background:spec.muted,color:mutedInk}}><div className="mx-auto max-w-5xl"><h2 className="font-serif text-3xl">Questions worth answering</h2><div className="mt-8 divide-y" style={{borderColor:spec.accent}}>{spec.faqs.map(f=><details key={f.question} className="group py-5"><summary className="flex cursor-pointer list-none items-center justify-between gap-5 text-lg font-semibold">{f.question}<ChevronDown size={20} className="shrink-0 transition-transform group-open:rotate-180"/></summary><p className="mt-3 max-w-3xl text-sm leading-8 opacity-75">{f.answer}</p></details>)}</div></div></section>
     </main>}
     {currentPage==="contact"&&<main>
       <PageIntro spec={spec} label="03 / Enquire" title={spec.contactPrompt} description="Explore how a thoughtful enquiry form can help customers explain their needs. This demo does not send or store submissions."/>
-      <section className="mx-auto grid max-w-7xl gap-10 px-5 pb-20 sm:px-8 lg:grid-cols-[1fr_.8fr] lg:px-12">
+      <section className="bt-demo-contact mx-auto grid max-w-7xl gap-10 px-5 pb-20 sm:px-8 lg:grid-cols-[1fr_.8fr] lg:px-12">
         <div className={"border p-6 sm:p-10 "+rounded} style={{borderColor:spec.muted}}>
           <p className="text-xs font-bold uppercase tracking-[.2em]">Interactive enquiry example</p>
           <label className="mt-8 block text-sm font-semibold" htmlFor="demo-service">What are you interested in?</label>
