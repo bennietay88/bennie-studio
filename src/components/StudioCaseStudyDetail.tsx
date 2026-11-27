@@ -1,4 +1,6 @@
 import React from "react";
+import { demoDesign } from "../lib/demoDesignProfiles";
+import "../styles/demoDesigns.css";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, ArrowRight, ArrowUpRight } from "lucide-react";
@@ -28,7 +30,7 @@ export default function StudioCaseStudyDetail() {
   if (!study) return <div className="brand-public min-h-screen bg-[#f8f8f5]"><PublicSiteHeader/><main className="brand-shell py-24"><h1 className="c27-section-title">Design study not found.</h1><p className="mt-4 text-slate-600">This design may be unpublished or no longer available.</p><Link to="/case-studies" className="c27-quiet mt-6">Browse the portfolio →</Link></main><PublicSiteFooter/></div>;
   const activeDemoSlug = portfolioDemoSlug(study.slug,study.livePreviewSlug);
   const previewPath = activeDemoSlug ? "/case-studies/showcase/" + activeDemoSlug + "/preview" : "";
-  return <div className="brand-public c27-public sfn-study-page min-h-screen bg-[#f8f8f5]" style={{"--sfn-study-accent":study.category === "Healthcare" ? "#4e877c" : study.category === "Home services" ? "#bd7e4b" : study.category === "Beauty & wellness" ? "#aa788b" : "#7776ab"} as React.CSSProperties}>
+  return <div className="brand-public c27-public sfn-study-page min-h-screen bg-[#f8f8f5]" data-study-layout={demoDesign(study.slug).layout} style={{"--sfn-study-accent":study.category === "Healthcare" ? "#4e877c" : study.category === "Home services" ? "#bd7e4b" : study.category === "Beauty & wellness" ? "#aa788b" : "#7776ab"} as React.CSSProperties}>
     <Helmet>
       <title>{study.title} Website Concept | Bennie Studio Portfolio</title>
       <meta name="description" content={study.challenge || study.headline}/>
