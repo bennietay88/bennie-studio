@@ -31,7 +31,7 @@ export function registerWebsiteOperationsRoutes(app:any,db:any,authenticate:any,
    const start=(page.data-1)*50;
    const filters=z.object({businessId:uuid.optional(),kind:z.enum(["all","primary","secondary"]).default("all"),state:z.enum(["all","draft","published","archived","suspended"]).default("all")}).safeParse(req.query);
    if(!filters.success)return res.status(400).json({error:"Invalid website filters"});
-   let query=db.from("websites").select(siteFields+",businesses(name,status,subscription_status,plan)").eq("is_internal_pilot",false);
+   let query=db.from("websites").select(siteFields+",businesses(name,status,subscription_status,plan,custom_domain)").eq("is_internal_pilot",false);
    if(filters.data.businessId)query=query.eq("business_id",filters.data.businessId);
    if(filters.data.kind!=="all")query=query.eq("is_primary",filters.data.kind==="primary");
    if(filters.data.state==="archived")query=query.not("archived_at","is",null);

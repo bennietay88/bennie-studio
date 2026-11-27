@@ -80,7 +80,7 @@ export function registerWebsiteAddonRoutes(app:any,db:any,authenticate:any,getPr
   return validWebsiteAddonPrice(price)?price:null;
  }
  app.get("/api/admin/website-addon-price",authenticate,async(req:any,res:any)=>{
-  try{if(!await admin(req,res))return;const config=checked(await db.from("website_addon_price").select("stripe_price_id").eq("singleton",true).maybeSingle());return res.json({priceId:config?.stripe_price_id||"",purchasesEnabled:enabled()});}catch(e){return fail(res,e);}
+  try{if(!await admin(req,res))return;const config=checked(await db.from("website_addon_price").select("stripe_price_id").eq("singleton",true).maybeSingle());return res.json({priceId:config?.stripe_price_id||"",purchasesEnabled:enabled()&&Boolean(config?.stripe_price_id),deploymentEnabled:enabled()});}catch(e){return fail(res,e);}
  });
  app.patch("/api/admin/website-addon-price",authenticate,async(req:any,res:any)=>{
   const input=z.object({priceId}).strict().safeParse(req.body);if(!input.success)return res.status(400).json({error:"Enter an existing Stripe Price ID"});

@@ -161,7 +161,7 @@ export function Sidebar({
           label: "Customers & Delivery",
           items: [
             { to: "/admin/businesses", icon: Globe, label: "Active Sites", className: "tour-businesses" },
-             { to: "/admin/website_operations", icon: Globe, label: "Website Operations" },
+             { to: "/admin/website_operations", icon: Globe, label: "Website Management" },
             { to: "/admin/users", icon: Users, label: "Users & Access" },
             { to: "/admin/operations_control", icon: BriefcaseBusiness, label: "Operations Control", moduleId: "operations_control" },
             { to: "/admin/projects", icon: Briefcase, label: "Service Projects", moduleId: "service_projects" },

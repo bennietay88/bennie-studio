@@ -6,16 +6,22 @@ do $test$
 declare a constant uuid:='00000000-0000-4000-8000-000000000001'; b constant uuid:='00000000-0000-4000-8000-000000000002'; actor constant uuid:='00000000-0000-4000-8000-000000000011'; primary_id constant uuid:='00000000-0000-4000-8000-000000000021'; site uuid; dup uuid; backup uuid; revision uuid; old_time timestamptz; usage jsonb;
 begin
  begin perform public.manage_website_draft(actor,a,'create',null,'Over limit'); raise exception 'quota bypass'; exception when check_violation then null; end;
+ insert into public.profiles(id,role,status) values('00000000-0000-4000-8000-000000000099','super_admin','active');
  update public.plans set website_limit=3 where slug='starter';
  site:=public.manage_website_draft(actor,a,'create',null,'Secondary');
- dup:=public.manage_website_draft(actor,a,'duplicate',site,'Duplicate');
+ dup:=public.manage_website_draft('00000000-0000-4000-8000-000000000099',a,'duplicate',site,'Admin Duplicate');
+ if not exists(select 1 from public.website_lifecycle_audit where website_id=dup and actor_id='00000000-0000-4000-8000-000000000099' and action='portfolio_duplicate') then raise exception 'admin audit missing';end if;
+ begin perform public.manage_website_draft('00000000-0000-4000-8000-000000000099',b,'rename',site,'Wrong scope');raise exception 'admin site/business mismatch bypass';exception when sqlstate 'P0002' then null;end;
+ update public.profiles set status='suspended' where id='00000000-0000-4000-8000-000000000099';
+ begin perform public.manage_website_draft('00000000-0000-4000-8000-000000000099',a,'rename',site,'Unauthorized');raise exception 'suspended admin bypass';exception when insufficient_privilege then null;end;
+ update public.profiles set status='active' where id='00000000-0000-4000-8000-000000000099';
  if (select is_primary from public.websites where id=site) then raise exception 'secondary is primary'; end if;
  begin perform public.manage_website_draft(actor,b,'create',null,'Wrong tenant'); raise exception 'tenant bypass'; exception when insufficient_privilege then null; end;
  update public.websites set custom_domain='example.test' where id=site;
  begin update public.websites set custom_domain='www.example.test' where id=dup; raise exception 'domain collision bypass'; exception when unique_violation then null; end;
  begin update public.websites set status='published' where id=site; raise exception 'approval bypass'; exception when check_violation then null; end;
  select release_revision,updated_at into revision,old_time from public.websites where id=site;
- backup:=public.manage_website_content_backup(actor,a,site,'create',null,old_time);
+ backup:=public.manage_website_content_backup('00000000-0000-4000-8000-000000000099',a,site,'create',null,old_time);
  update public.websites set pages='[{"slug":"changed"}]',updated_at=clock_timestamp() where id=site;
  if (select release_revision from public.websites where id=site)=revision then raise exception 'revision did not change'; end if;
  select updated_at into old_time from public.websites where id=site;
