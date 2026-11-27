@@ -1,5 +1,36 @@
 -- Private internal role-test authorization registry. No direct browser access.
 begin;
+-- Provision the protected flag on both clean installations and existing production.
+alter table public.businesses add column if not exists internal_access_mode text;
+do $mode$
+begin
+ if not exists(select 1 from pg_constraint where conrelid='public.businesses'::regclass and conname='businesses_internal_access_mode_check') then
+  alter table public.businesses add constraint businesses_internal_access_mode_check check(internal_access_mode in ('owner','plan_test'));
+ end if;
+end;
+$mode$;
+create or replace function private.guard_internal_owner_mode() returns trigger language plpgsql set search_path='' as $mode$
+begin
+ if (tg_op='INSERT' and new.internal_access_mode is not null)
+ or (tg_op='UPDATE' and new.internal_access_mode is distinct from old.internal_access_mode) then
+  if current_user not in ('postgres','supabase_admin','service_role') and not private.is_super_admin() then
+   raise exception 'INTERNAL_ACCESS_ADMIN_REQUIRED' using errcode='42501';
+  end if;
+ end if;
+ if new.internal_access_mode is not null and (new.stripe_customer_id is not null or new.stripe_subscription_id is not null) then
+  raise exception 'INTERNAL_ACCOUNT_CANNOT_USE_PLATFORM_BILLING' using errcode='23514';
+ end if;
+ if tg_op='UPDATE' and old.internal_access_mode is not null and (new.owner_id is distinct from old.owner_id or new.plan is distinct from old.plan) then
+  if current_user not in ('postgres','supabase_admin','service_role') and not private.is_super_admin() then
+   raise exception 'INTERNAL_ACCESS_ADMIN_REQUIRED' using errcode='42501';
+  end if;
+ end if;
+ return new;
+end;
+$mode$;
+revoke all on function private.guard_internal_owner_mode() from public,anon,authenticated;
+drop trigger if exists guard_internal_owner_mode on public.businesses;
+create trigger guard_internal_owner_mode before insert or update on public.businesses for each row execute function private.guard_internal_owner_mode();
 create table if not exists public.internal_role_test_owners(
  owner_id uuid primary key references auth.users(id) on delete cascade,
  business_id uuid not null unique references public.businesses(id) on delete cascade,
@@ -21,6 +52,12 @@ alter table public.internal_role_test_audit enable row level security;
 revoke all on public.internal_role_test_owners,public.internal_role_test_personas,public.internal_role_test_audit from public,anon,authenticated;
 grant select,insert,update,delete on public.internal_role_test_owners,public.internal_role_test_personas to service_role;
 grant select,insert on public.internal_role_test_audit to service_role;
+create or replace function public.internal_role_session_active(p_owner uuid,p_session uuid)
+returns boolean language sql stable security definer set search_path='' as $session$
+ select exists(select 1 from auth.sessions s join public.internal_role_test_owners o on o.owner_id=s.user_id where s.id=p_session and s.user_id=p_owner and o.enabled and (s.not_after is null or s.not_after>now()));
+$session$;
+revoke all on function public.internal_role_session_active(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.internal_role_session_active(uuid,uuid) to service_role;
 alter table public.businesses drop constraint if exists businesses_plan_check;
 alter table public.businesses add constraint businesses_plan_check check(plan in ('starter','business','growth','premium','authority','pro','elite','website_growth_partner','managed-website','website-growth','growth-partner','custom-website','profile','internal_owner'));
 create or replace function private.guard_internal_owner_plan() returns trigger language plpgsql set search_path='' as $guard$

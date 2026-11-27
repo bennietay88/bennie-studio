@@ -7,6 +7,16 @@ const checked=(r:any)=>{if(r.error)throw r.error;return r.data;};
 export function isAuthorizedTestOwner(profile:any,registry:any,business:any,userId:string){
  return profile?.id===userId&&profile.status==="active"&&profile.role==="business_admin"&&registry?.owner_id===userId&&registry.enabled===true&&registry.business_id===profile.business_id&&business?.id===registry.business_id&&business.owner_id===userId&&business.internal_access_mode==="owner"&&business.status==="active";
 }
+// The bearer token has already been validated by authenticate. Read claims
+// from that exact session, not the user's last sign-in on a different device.
+export function recentRoleSession(token:string,userId:string,privileged:boolean,now=Date.now()){
+ try{
+  const claims=JSON.parse(Buffer.from(token.split(".")[1],"base64url").toString("utf8"));
+  if(claims.sub!==userId||typeof claims.session_id!=="string"||!claims.session_id||!Array.isArray(claims.amr))return false;
+  if(privileged&&claims.aal!=="aal2")return false;
+  return claims.amr.some((m:any)=>["password","otp","oauth","totp","mfa/totp","mfa/phone","webauthn","mfa/webauthn"].includes(m.method)&&Number.isFinite(m.timestamp)&&now-m.timestamp*1000>=-30000&&now-m.timestamp*1000<=300000);
+ }catch{return false;}
+}
 export function registerInternalRoleTestRoutes(app:any,db:any,authenticate:any,getProfile:any){
  async function ownerContext(req:any){
   const uid=req.user.id;
@@ -32,9 +42,14 @@ export function registerInternalRoleTestRoutes(app:any,db:any,authenticate:any,g
   try{
    const owner=await ownerContext(req);
    if(!owner)return res.status(403).json({error:"Internal owner authorization required"});
-   const signIn=Date.parse(req.user.last_sign_in_at||"");
-   if(!Number.isFinite(signIn)||Date.now()-signIn>300000||signIn>Date.now()+30000)return res.status(403).json({error:"Sign out and sign in to your owner account again before switching roles."});
    const role=body.data.role;
+   const privileged=role==="super_admin"||role==="platform_staff";
+   const token=String(req.headers.authorization||"").split(" ")[1]||"";
+   if(!recentRoleSession(token,req.user.id,privileged))return res.status(403).json({error:privileged?"Verify MFA in your current owner session before starting a privileged test role.":"Sign out and sign in again before switching roles."});
+   // Verify that the owner session still exists (not only that its JWT is valid).
+   const claims=JSON.parse(Buffer.from(token.split(".")[1],"base64url").toString("utf8"));
+   const {data:sessionActive,error:sessionError}=await db.rpc("internal_role_session_active",{p_owner:req.user.id,p_session:claims.session_id});
+   if(sessionError||sessionActive!==true)return res.status(403).json({error:"Owner session is no longer active."});
    const customer=role==="staff"||role==="client";
    let record=checked(await db.from("internal_role_test_personas").select("persona_id,role").eq("owner_id",owner.owner_id).eq("role",role).maybeSingle());
    if(!record){

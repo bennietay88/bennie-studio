@@ -140,7 +140,7 @@ jobs:
           PGPASSWORD: isolated_test_only
         run: |
           set -euo pipefail
-          for file in supabase/rollout/tests/multi_site_fixture.sql supabase/rollout/multi_site_lifecycle.sql supabase/rollout/multi_site_admin.sql supabase/rollout/tests/multi_site_assertions.sql; do
+          for file in supabase/rollout/tests/multi_site_fixture.sql supabase/rollout/multi_site_lifecycle.sql supabase/rollout/multi_site_admin.sql supabase/rollout/tests/multi_site_assertions.sql supabase/rollout/internal_owner_verification.sql supabase/rollout/tests/internal_owner_assertions.sql; do
             psql -h 127.0.0.1 -U postgres -d multisite_test -v ON_ERROR_STOP=1 -f "$file"
           done
 
