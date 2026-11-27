@@ -129,6 +129,19 @@ export default async function middleware(request: Request) {
   });
   if (result.ok === false) return jsonError(result.status, result.code, result.message);
 
+  if(url.pathname==="/robots.txt"||url.pathname==="/sitemap.xml"){
+    const rows=await fetchSupabase("websites?select=id,business_id,status,pages&business_id=eq."+encodeURIComponent(result.businessId)+"&id=eq."+encodeURIComponent(result.websiteId)+"&limit=1").catch(()=>[]);
+    const site=rows?.[0];
+    if(!site||site.status!=="published"||site.id!==result.websiteId||site.business_id!==result.businessId)return jsonError(404,"WEBSITE_NOT_PUBLISHED","This website is not available.");
+    const origin="https://"+host;
+    if(url.pathname==="/robots.txt")return new Response("User-agent: *\nAllow: /\nSitemap: "+origin+"/sitemap.xml\n",{headers:{"content-type":"text/plain; charset=utf-8","cache-control":"no-store"}});
+    const paths=new Set<string>(["/"]);
+    for(const page of Array.isArray(site.pages)?site.pages:[]){
+      if(typeof page?.slug==="string"&&/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/i.test(page.slug)&&page.slug!=="home")paths.add("/"+page.slug);
+    }
+    const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+Array.from(paths,p=>"<url><loc>"+origin+p+"</loc></url>").join("")+"</urlset>";
+    return new Response(xml,{headers:{"content-type":"application/xml; charset=utf-8","cache-control":"no-store"}});
+  }
   const headers = new Headers(request.headers);
   headers.set("x-bts-tenant-host", host);
   headers.set("x-bts-business-id", result.businessId);
@@ -142,5 +155,5 @@ export default async function middleware(request: Request) {
 
 export const config = {
   runtime: "nodejs",
-  matcher: ["/((?!api/|assets/|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
+  matcher: ["/robots.txt", "/sitemap.xml", "/((?!api/|assets/|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)"],
 };

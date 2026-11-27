@@ -1576,7 +1576,9 @@ export function WebsiteRenderer({
       : website.seo.keywords;
 
   const currentUrl = window.location.href.split("?")[0];
-  const canonicalUrl = website.seo.canonicalUrl || currentUrl;
+  const canonicalUrl = websiteIdOverride&&!isEditingPreview&&!isTemplatePreview
+    ? window.location.origin + (activePageSlug&&activePageSlug!=="home"&&/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/i.test(activePageSlug)?"/"+activePageSlug:"/")
+    : website.seo.canonicalUrl || currentUrl;
 
   const generateJsonLd = () => {
     if (!website) return null;

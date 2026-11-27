@@ -270,4 +270,70 @@ drop trigger if exists z_guard_secondary_site_release on public.websites;
 create trigger z_guard_secondary_site_release before insert or update on public.websites
 for each row execute function private.guard_secondary_site_release();
 
+-- Server-only, tenant/site-bound content snapshots. No public grants or direct client access.
+create table if not exists public.website_content_backups(
+ id uuid primary key default gen_random_uuid(), business_id uuid not null references public.businesses(id) on delete cascade,
+ website_id uuid not null references public.websites(id) on delete cascade,
+ created_by uuid not null, created_at timestamptz not null default now(),
+ content jsonb not null, content_bytes integer not null check(content_bytes between 1 and 10000000)
+);
+create index if not exists website_content_backups_scope on public.website_content_backups(business_id,website_id,created_at desc);
+alter table public.website_content_backups enable row level security;
+revoke all on public.website_content_backups from public,anon,authenticated;
+grant select,insert,delete on public.website_content_backups to service_role;
+create table if not exists public.website_lifecycle_audit(
+ id uuid primary key default gen_random_uuid(), business_id uuid, website_id uuid,
+ actor_id uuid, action text not null, details jsonb not null default '{}'::jsonb,
+ created_at timestamptz not null default now()
+);
+alter table public.website_lifecycle_audit enable row level security;
+revoke all on public.website_lifecycle_audit from public,anon,authenticated;
+grant select,insert on public.website_lifecycle_audit to service_role;
+create or replace function public.manage_website_content_backup(p_actor uuid,p_business uuid,p_website uuid,p_action text,p_backup uuid,p_updated timestamptz)
+returns uuid language plpgsql security invoker set search_path='' as $backup$
+declare w public.websites%rowtype; snapshot jsonb; restore_content jsonb; saved uuid;
+begin
+ if not exists(select 1 from public.profiles where id=p_actor and business_id=p_business and role='business_admin' and status='active') then raise exception 'FORBIDDEN' using errcode='42501'; end if;
+ select * into w from public.websites where id=p_website and business_id=p_business and not is_internal_pilot and archived_at is null for update;
+ if not found then raise exception 'WEBSITE_NOT_FOUND' using errcode='P0002'; end if;
+ if w.updated_at is distinct from p_updated then raise exception 'STALE_WEBSITE' using errcode='40001'; end if;
+ if p_action not in ('create','restore') then raise exception 'INVALID_BACKUP_ACTION'; end if;
+ if p_action='restore' then
+  if w.is_primary or w.status<>'draft' then raise exception 'SECONDARY_DRAFT_REQUIRED'; end if;
+  select content into restore_content from public.website_content_backups where id=p_backup and business_id=p_business and website_id=p_website;
+  if not found then raise exception 'BACKUP_NOT_FOUND' using errcode='P0002'; end if;
+ end if;
+ snapshot:=jsonb_build_object('pages',w.pages,'theme',w.theme,'seo',w.seo);
+ if (select count(*) from public.website_content_backups where website_id=p_website)>=30 then raise exception 'BACKUP_LIMIT_REACHED'; end if;
+ insert into public.website_content_backups(business_id,website_id,created_by,content,content_bytes)
+ values(p_business,p_website,p_actor,snapshot,octet_length(snapshot::text)) returning id into saved;
+ if p_action='restore' then
+  update public.websites set pages=restore_content->'pages',theme=restore_content->'theme',seo=restore_content->'seo',updated_at=now() where id=p_website and business_id=p_business;
+ end if;
+ insert into public.website_lifecycle_audit(business_id,website_id,actor_id,action,details)
+ values(p_business,p_website,p_actor,'backup_'||p_action,jsonb_build_object('new_backup',saved,'restored_backup',p_backup));
+ return saved;
+end;
+$backup$;
+revoke all on function public.manage_website_content_backup(uuid,uuid,uuid,text,uuid,timestamptz) from public,anon,authenticated;
+grant execute on function public.manage_website_content_backup(uuid,uuid,uuid,text,uuid,timestamptz) to service_role;
+
+create or replace function private.audit_secondary_website()
+returns trigger language plpgsql security definer set search_path='' as $audit$
+begin
+ if new.business_id is null or new.is_primary then return new; end if;
+ if tg_op='INSERT' then
+  insert into public.website_lifecycle_audit(business_id,website_id,actor_id,action) values(new.business_id,new.id,auth.uid(),'created');
+ elsif row(new.status,new.custom_domain,new.custom_domain_suspended,new.archived_at,new.release_revision,new.submitted_revision,new.internal_approved_revision,new.customer_approved_revision)
+ is distinct from row(old.status,old.custom_domain,old.custom_domain_suspended,old.archived_at,old.release_revision,old.submitted_revision,old.internal_approved_revision,old.customer_approved_revision) then
+  insert into public.website_lifecycle_audit(business_id,website_id,actor_id,action,details) values(new.business_id,new.id,auth.uid(),'lifecycle_changed',
+  jsonb_build_object('status_before',old.status,'status_after',new.status,'domain_changed',new.custom_domain is distinct from old.custom_domain,'suspended',new.custom_domain_suspended,'archived',new.archived_at is not null,'revision',new.release_revision,'internal_approved_by',new.internal_approved_by,'customer_approved_by',new.customer_approved_by));
+ end if;
+ return new;
+end;
+$audit$;
+revoke all on function private.audit_secondary_website() from public,anon,authenticated;
+drop trigger if exists audit_secondary_website on public.websites;
+create trigger audit_secondary_website after insert or update on public.websites for each row execute function private.audit_secondary_website();
+
 commit;

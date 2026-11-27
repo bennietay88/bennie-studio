@@ -1,3 +1,4 @@
+import { registerWebsiteBackupRoutes } from "./websiteBackupRoutes.js";
 import { registerWebsiteOperationsRoutes } from "./websiteOperationsRoutes.js";
 import { registerWebsiteReleaseRoutes } from "./websiteReleaseRoutes.js";
 import { registerWebsiteDomainRoutes } from "./websiteDomainRoutes.js";
@@ -16,6 +17,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
   registerWebsiteDomainRoutes(app,db,authenticate,getProfile);
   registerWebsiteReleaseRoutes(app,db,authenticate,getProfile);
   registerWebsiteOperationsRoutes(app,db,authenticate,getProfile);
+  registerWebsiteBackupRoutes(app,db,authenticate,getProfile);
   const enabled = () => process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true";
   async function actor(req:any,res:any) {
     const profile = await getProfile(req.user.id);

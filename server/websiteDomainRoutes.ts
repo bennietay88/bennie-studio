@@ -43,7 +43,7 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
     return site;
   }
   function response(site:any){
-    return {siteId:site.id,businessId:site.business_id,enabled:enabled(),domain:site.custom_domain||"",status:site.custom_domain_status||"not_connected",ssl:site.ssl_status||"not_connected",verifiedAt:site.custom_domain_verified_at||null,challenge:site.domain_challenge?{name:"_bennie-verify."+site.custom_domain,value:site.domain_challenge}:null,dns:{a:VERCEL_APEX_A,cname:getPrimaryVercelCname()}};
+    return {siteId:site.id,businessId:site.business_id,enabled:enabled(),domain:site.custom_domain||"",updatedAt:site.updated_at,editable:site.status==="draft"&&!site.custom_domain_suspended,status:site.custom_domain_status||"not_connected",ssl:site.ssl_status||"not_connected",verifiedAt:site.custom_domain_verified_at||null,challenge:site.domain_challenge?{name:"_bennie-verify."+site.custom_domain,value:site.domain_challenge}:null,dns:{a:VERCEL_APEX_A,cname:getPrimaryVercelCname()}};
   }
   function fail(res:any,e:any){
     if(e?.code==="23505")return res.status(409).json({error:"This domain is already reserved."});
@@ -66,9 +66,26 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
         if(site.custom_domain===host)return res.json(response(site));
         return res.status(409).json({error:"A domain is already reserved. Contact delivery support to change it."});
       }
-      const {data,error}=await db.from("websites").update({custom_domain:host,domain_challenge:"bennie-"+randomBytes(32).toString("hex"),custom_domain_permission_confirmed:true,custom_domain_status:"dns_pending",custom_domain_verified_at:null,ssl_status:"pending",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("status","draft").is("archived_at",null).is("custom_domain",null).select(select).maybeSingle();
+      const {data,error}=await db.from("websites").update({custom_domain:host,domain_challenge:"bennie-"+randomBytes(32).toString("hex"),custom_domain_permission_confirmed:true,custom_domain_status:"dns_pending",custom_domain_verified_at:null,ssl_status:"pending",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("status","draft").eq("updated_at",site.updated_at).is("archived_at",null).is("custom_domain",null).select(select).maybeSingle();
       if(error)throw error;
       if(!data)return res.status(409).json({error:"Website changed. Reload and try again."});
+      return res.json(response(data));
+    }catch(e){return fail(res,e);}
+  });
+  app.patch("/api/account/websites/:siteId/domain",authenticate,async(req:any,res:any)=>{
+    if(!enabled())return res.status(503).json({error:"Independent domains are not enabled."});
+    const input=z.object({domain:z.string().trim().min(4).max(253).nullable(),permission:z.boolean(),confirmation:z.literal(true),updatedAt:z.string().datetime({offset:true})}).strict().safeParse(req.body);
+    if(!input.success)return res.status(400).json({error:"Invalid domain change."});
+    const host=input.data.domain===null?null:validSecondaryDomain(input.data.domain);
+    if(input.data.domain!==null&&(!host||!input.data.permission))return res.status(400).json({error:"Enter a permitted domain and confirm ownership."});
+    try{
+      const site=await load(req,res);if(!site)return;
+      if(site.status!=="draft"||site.custom_domain_suspended||site.updated_at!==input.data.updatedAt)return res.status(409).json({error:"Unpublish or refresh this website before changing its domain."});
+      if(host===site.custom_domain)return res.json(response(site));
+      // Change routing reservation atomically; do not delete the shared provider alias
+      // while a concurrent verification or reassignment could be using it.
+      const {data,error}=await db.from("websites").update({custom_domain:host,domain_challenge:host?"bennie-"+randomBytes(32).toString("hex"):null,custom_domain_permission_confirmed:Boolean(host),custom_domain_status:"dns_pending",custom_domain_verified_at:null,ssl_status:"pending",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("is_primary",false).eq("status","draft").eq("updated_at",site.updated_at).is("archived_at",null).select(select).maybeSingle();
+      if(error)throw error;if(!data)return res.status(409).json({error:"Website changed. Refresh and retry."});
       return res.json(response(data));
     }catch(e){return fail(res,e);}
   });

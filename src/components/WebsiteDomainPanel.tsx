@@ -2,7 +2,7 @@ import {useEffect,useState} from "react";
 import {portfolioRequest} from "../lib/websitePortfolioApi";
 import {Button} from "./ui/button";
 
-type DomainResult={enabled:false}|{enabled:true;siteId:string;businessId:string;domain:string;status:string;ssl:string;verifiedAt:string|null;challenge:{name:string;value:string}|null;dns:{a:string;cname:string};checks?:{owned:boolean;pointed:boolean;providerVerified:boolean;ssl:boolean}};
+type DomainResult={enabled:false}|{enabled:true;siteId:string;businessId:string;domain:string;updatedAt:string;editable:boolean;status:string;ssl:string;verifiedAt:string|null;challenge:{name:string;value:string}|null;dns:{a:string;cname:string};checks?:{owned:boolean;pointed:boolean;providerVerified:boolean;ssl:boolean}};
 export default function WebsiteDomainPanel({siteId,businessId}:{siteId:string;businessId:string}){
  const [state,setState]=useState<DomainResult|null>(null);
  const [domain,setDomain]=useState("");
@@ -20,6 +20,13 @@ export default function WebsiteDomainPanel({siteId,businessId}:{siteId:string;bu
    try{const data=await portfolioRequest<DomainResult>(path+(verify?"/verify":""),{method:"POST",body:JSON.stringify(verify?{}:{domain:domain.trim(),permission})});setState(validate(data));}
    catch(e){setError(e instanceof Error?e.message:"Domain operation failed.");}finally{setBusy(false);}
  }
+ async function change(remove:boolean){
+  if(busy||!state?.enabled||!state.editable||(!remove&&(!domain.trim()||!permission)))return;
+  if(!window.confirm(remove?"Release this domain reservation? The domain will stop routing to this website.":"Replace this domain? The new domain needs fresh verification and approval."))return;
+  setBusy(true);setError("");
+  try{setState(validate(await portfolioRequest<DomainResult>(path,{method:"PATCH",body:JSON.stringify({domain:remove?null:domain.trim(),permission,confirmation:true,updatedAt:state.updatedAt})})));setDomain("");setPermission(false);}
+  catch(e){setError(e instanceof Error?e.message:"Domain change failed.");}finally{setBusy(false);}
+ }
  return <section className="rounded-xl border p-4 space-y-4">
  <div><h2 className="font-semibold">Domain &amp; SSL</h2><p className="text-sm text-slate-500">Connect a domain to this website only. Domain readiness does not publish the website.</p></div>
  {error&&<p role="alert" className="text-sm text-red-600">{error}</p>}
@@ -30,7 +37,7 @@ export default function WebsiteDomainPanel({siteId,businessId}:{siteId:string;bu
  <p className="text-xs text-slate-500">An apex hostname may require an A record instead of CNAME. Do not remove the ownership TXT record.</p>
  {state.checks&&<ul className="text-sm space-y-1">{Object.entries({Ownership:state.checks.owned,"DNS pointing":state.checks.pointed,"Hosting verification":state.checks.providerVerified,"TLS certificate":state.checks.ssl}).map(([label,ok])=><li key={label}>{label}: {ok?"Passed":"Pending"}</li>)}</ul>}
  <Button disabled={busy} onClick={()=>void action(true)}>{busy?"Checking…":"Verify DNS & SSL"}</Button>
- <p className="text-xs text-slate-500">Contact delivery support to change or release a reserved domain.</p>
+ {state.editable?<div className="space-y-2 border-t pt-3"><label className="block text-sm">Replacement hostname<input className="mt-1 block w-full rounded border bg-transparent p-2" value={domain} onChange={e=>setDomain(e.target.value)}/></label><label className="flex gap-2 text-sm"><input type="checkbox" checked={permission} onChange={e=>setPermission(e.target.checked)}/>I own or have permission to connect this hostname.</label><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy||!permission||!domain.trim()} onClick={()=>void change(false)}>Replace domain</Button><Button variant="outline" disabled={busy} onClick={()=>void change(true)}>Release domain</Button></div></div>:<p className="text-xs text-slate-500">Unpublish and reactivate this website before changing its domain.</p>}
  </div>}
  </section>;
 }

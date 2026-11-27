@@ -109,7 +109,7 @@ export default function WebsitePortfolio() {
           </div>
         </article>)}
       </div>}
-      <p className="mt-4 text-xs text-slate-500">{enabled?"Secondary websites are draft-only until independent publishing is enabled.":"Website lifecycle is not enabled for this workspace."}</p>
+      <p className="mt-4 text-xs text-slate-500">{enabled?"Publishing, domains and additional services depend on your website and subscription settings.":"Website lifecycle is not enabled for this workspace."}</p>
     </section>
   </main>;
 }
