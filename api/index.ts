@@ -1,3 +1,4 @@
+import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
 import { registerWebsitePortfolioRoutes } from "../server/websitePortfolioRoutes.js";
 import { fetchPublishedPreviewContent, isPreviewPublicRead } from "../server/previewPublicContent.js";
@@ -15185,6 +15186,22 @@ async function startServer() {
 
       if (tenant.kind === "custom_domain" && !isValidCustomDomain(host)) {
         return res.status(404).json({ error: "Domain not found.", code: "DOMAIN_NOT_FOUND" });
+      }
+
+      res.setHeader("Cache-Control","no-store");
+      if (tenant.kind === "custom_domain" && process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true" && process.env.MULTI_SITE_DOMAINS === "true" && process.env.MULTI_SITE_PUBLICATION === "true") {
+        const {data:rows,error}=await supabaseAdmin.from("websites").select(SECONDARY_SITE_ROUTE_FIELDS).eq("custom_domain",host).eq("is_primary",false).limit(2);
+        if(error)throw error;
+        if((rows||[]).length>1)return res.status(409).json({error:"This domain is not available.",code:"AMBIGUOUS_DOMAIN"});
+        if(rows?.length===1){
+          const site=rows[0] as SecondaryRouteRow;
+          const failure=secondaryDomainFailure(site,host);
+          if(failure)return res.status(failure.status).json({error:failure.message,code:failure.code});
+          const {data:owner,error:ownerError}=await supabaseAdmin.from("businesses").select("id,name,status,subscription_status").eq("id",site.business_id).maybeSingle();
+          if(ownerError)throw ownerError;
+          if(!owner||owner.status!=="active"||owner.subscription_status!=="active")return res.status(403).json({error:"This website is not available.",code:"BUSINESS_INACTIVE"});
+          return res.json({businessId:owner.id,businessName:owner.name,websiteId:site.id,tenantKind:tenant.kind,status:"connected"});
+        }
       }
 
       const businessSelect = "id, name, subdomain, custom_domain, custom_domain_status, custom_domain_verified_at, custom_domain_suspended, custom_domain_permission_confirmed, ssl_status, status, subscription_status, subscription_grace_until, trial_ends_at";
