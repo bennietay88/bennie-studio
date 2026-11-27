@@ -8,7 +8,7 @@ test("portfolio and site editor are protected routes with a tenant-scoped lookup
  const workspace=readFileSync("src/components/WebsitePortfolioEditor.tsx","utf8");
  assert.match(app,/path="websites" element=\{<ProtectedRoute/);
  assert.match(app,/path="websites\/:siteId" element=\{<ProtectedRoute/);
- assert.match(portfolio,/\.eq\("business_id", businessId\)/);
+ assert.match(portfolio,/getWebsitePortfolio\(\)/);
  assert.match(workspace,/\.eq\("business_id",businessId\)\.eq\("id",siteId\)/);
  assert.match(workspace,/key=\{scope\} websiteIdOverride=\{siteId\}/);
 });
