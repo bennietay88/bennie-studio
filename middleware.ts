@@ -1,3 +1,4 @@
+import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "./src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "./src/lib/primaryWebsite.js";
 import { next, rewrite } from "@vercel/functions";
 import { classifyTenantHost, getPlatformHosts, normalizeDomainInput } from "./src/lib/tenantDomains.js";
@@ -75,6 +76,21 @@ async function resolveTenantHost(host: string): Promise<TenantResolveResult> {
 
   const tenant = classifyTenantHost(host, process.env as Record<string, string | undefined>);
   if (tenant.kind === "platform") return { ok: false, status: 404, code: "DOMAIN_NOT_FOUND", message: "Domain not found." };
+
+  // Site-level routing is opt-in until the database rollout has been validated.
+  if (tenant.kind === "custom_domain" && process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true" && process.env.MULTI_SITE_DOMAINS === "true" && process.env.MULTI_SITE_PUBLICATION === "true") {
+    const rows: SecondaryRouteRow[] = await fetchSupabase(`websites?select=${SECONDARY_SITE_ROUTE_FIELDS}&custom_domain=eq.${encodeURIComponent(host)}&is_primary=eq.false&limit=2`);
+    if (rows.length > 1) return {ok:false,status:409,code:"AMBIGUOUS_DOMAIN",message:"This domain is not available."};
+    if (rows.length === 1) {
+      const site = rows[0];
+      const failure = secondaryDomainFailure(site,host);
+      if(failure) return {ok:false,...failure};
+      const owners=await fetchSupabase(`businesses?select=${TENANT_SELECT}&id=eq.${encodeURIComponent(site.business_id)}&limit=1`);
+      const owner=owners?.[0];
+      if(!owner||owner.id!==site.business_id||owner.status!=="active"||owner.subscription_status!=="active")return {ok:false,status:403,code:"BUSINESS_INACTIVE",message:"This website is not available."};
+      return {ok:true,businessId:site.business_id,websiteId:site.id,kind:tenant.kind};
+    }
+  }
 
   const businesses =
     tenant.kind === "subdomain"
