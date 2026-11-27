@@ -21,7 +21,7 @@ const PUBLIC_PATH_PREFIXES = [
 ];
 
 const isPublicMarketingPath = (path: string) =>
-  PUBLIC_PATH_PREFIXES.some((prefix) =>
+  !/^\/case-studies\/showcase\/[^/]+\/preview(?:\/|$)/.test(path) && PUBLIC_PATH_PREFIXES.some((prefix) =>
     prefix === "/" ? path === "/" : path === prefix || path.startsWith(prefix),
   );
 

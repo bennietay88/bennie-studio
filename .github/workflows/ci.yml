@@ -3,6 +3,8 @@ name: CI
 on:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 18 * * *' # 02:00 Malaysia time; full regression
   push:
     branches:
       - main
@@ -23,37 +25,34 @@ jobs:
     timeout-minutes: 20
     outputs:
       code_changed: ${{ steps.scope.outputs.code_changed }}
+      browser_scope: ${{ steps.scope.outputs.browser_scope }}
+      shards: ${{ steps.scope.outputs.shards }}
+      matrix: ${{ steps.scope.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
-      - name: Classify changed paths
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify changed paths conservatively
         id: scope
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          code_changed=true
-          # A PR's synthetic merge SHA may be shallow or inaccessible via a
-          # separate fetch. Fail *open to testing*, never fail the entire job.
-          # This keeps the required verify check present for every PR.
-          if [ "$EVENT_NAME" = "pull_request" ]; then
-            changed_files="src/App.tsx"
-          else
-            if git rev-parse "${HEAD_SHA}^" >/dev/null 2>&1; then
-              changed_files="$(git diff --name-only "${HEAD_SHA}^" "$HEAD_SHA" || true)"
-            else
-              changed_files="src/App.tsx"
+          paths=/tmp/bennie-ci-paths.txt
+          printf '%s\n' '__full_regression__' > "$paths"
+          if [[ "$EVENT_NAME" == pull_request || "$EVENT_NAME" == push ]]; then
+            if [[ "$BASE_SHA" =~ ^[0-9a-f]{40}$ ]] && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+              if ! git diff --no-renames --name-only "$BASE_SHA" "$HEAD_SHA" > "$paths"; then
+                printf '%s\n' '__full_regression__' > "$paths"
+              fi
             fi
           fi
-          if [ -n "$changed_files" ] && ! printf '%s\n' "$changed_files" | grep -Ev '(^|/)[^/]+\.md$' >/dev/null; then
-            code_changed=false
-          fi
-          printf 'code_changed=%s\n' "$code_changed" >> "$GITHUB_OUTPUT"
+          node scripts/ci-scope.mjs < "$paths" | tee -a "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         if: steps.scope.outputs.code_changed == 'true'
         with:
@@ -75,12 +74,15 @@ jobs:
         if: steps.scope.outputs.code_changed == 'true'
         run: |
           set -o pipefail
-          npm run build 2>&1 | tee /tmp/bennie-ci-build.log
+          env VITE_SUPABASE_URL=https://e2e.supabase.co VITE_SUPABASE_ANON_KEY=e2e-anon-key npm run build 2>&1 | tee /tmp/bennie-ci-build.log
       - name: Run complete unit and domain regression suite
         if: steps.scope.outputs.code_changed == 'true'
         run: |
           set -o pipefail
           node --import tsx --test tests/*.test.ts 2>&1 | tee /tmp/bennie-ci-tests.log
+      - name: Validate CI scope selection
+        if: steps.scope.outputs.code_changed == 'true'
+        run: node --test scripts/ci-scope.test.mjs
       - name: Validate design research intake parser
         if: steps.scope.outputs.code_changed == 'true'
         run: npm run test:design-trends
@@ -99,23 +101,98 @@ jobs:
           if-no-files-found: warn
 
 
-  browser-e2e:
-    # Run browser tests even when verify fails, to identify independent regressions.
-    if: ${{ !cancelled() && (needs.verify.outputs.code_changed == 'true' || github.event_name == 'pull_request') }}
+      - name: Share verified fixture build with browser shards
+        if: success() && steps.scope.outputs.code_changed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
+
+  browser-e2e-shard:
+    # Compilation, build, unit tests and security checks must pass first.
     needs: verify
+    if: needs.verify.result == 'success' && needs.verify.outputs.code_changed == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.verify.outputs.matrix || '[1]') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 26
           cache: npm
       - run: npm ci
-      - name: Install Chromium for browser E2E
+      - uses: actions/download-artifact@v4
+        with:
+          name: e2e-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: dist/
+      - name: Cache Playwright Chromium binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Chromium and required OS dependencies
         run: npx playwright install --with-deps chromium
-      - name: Run desktop and mobile Chromium end-to-end tests
-        run: npm run e2e -- --project=chromium-desktop --project=mobile-chromium
+      - name: Run assigned desktop and mobile Chromium shard
+        shell: bash
+        env:
+          E2E_PREBUILT: '1'
+          BROWSER_SCOPE: ${{ needs.verify.outputs.browser_scope }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ needs.verify.outputs.shards }}
+        run: |
+          set -euo pipefail
+          specs=()
+          case "$BROWSER_SCOPE" in
+            portfolio|marketing)
+              mapfile -t specs < <(node --input-type=module -e 'import {portfolioSpecs,marketingSpecs} from "./scripts/ci-scope.mjs"; console.log((process.env.BROWSER_SCOPE==="portfolio"?portfolioSpecs:marketingSpecs).join("\n"))')
+              test "${#specs[@]}" -gt 0
+              ;;
+            full) ;;
+            *) echo "Invalid test scope: $BROWSER_SCOPE"; exit 1 ;;
+          esac
+          npm run e2e -- "${specs[@]}" --project=chromium-desktop --project=mobile-chromium --shard="$SHARD/$SHARDS"
+      - name: Preserve browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 3
+
+  browser-e2e:
+    # Stable aggregate check for branch rules and downstream production smoke.
+    if: always() && !cancelled()
+    needs: [verify, browser-e2e-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require successful verification and all selected browser shards
+        shell: bash
+        env:
+          VERIFY: ${{ needs.verify.result }}
+          CODE_CHANGED: ${{ needs.verify.outputs.code_changed }}
+          BROWSER: ${{ needs.browser-e2e-shard.result }}
+        run: |
+          set -euo pipefail
+          test "$VERIFY" = success
+          if [[ "$CODE_CHANGED" == false ]]; then
+            echo "Documentation-only change; browser tests not required."
+          else
+            test "$CODE_CHANGED" = true
+            test "$BROWSER" = success
+          fi
 
   multi-site-sql:
     runs-on: ubuntu-latest
