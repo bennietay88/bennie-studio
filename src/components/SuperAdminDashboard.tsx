@@ -1,3 +1,4 @@
+import WebsiteAllowanceAdmin from "./WebsiteAllowanceAdmin";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -2070,7 +2071,7 @@ export default function SuperAdminDashboard() {
                 <SuperAdminAffiliatePartners onViewProfile={(user) => { setViewingUser(user); setIsViewUserDialogOpen(true); }} />
              </div>
           )}
-          {activeTab === "plans" && <><CommercialCatalogue /><PlanEditor /></>}
+          {activeTab === "plans" && <><CommercialCatalogue /><PlanEditor /><WebsiteAllowanceAdmin /></>}
 
           {activeTab === "ecosystem_architect" && (
             <div className="space-y-8">
