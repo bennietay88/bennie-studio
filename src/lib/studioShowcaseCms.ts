@@ -8,7 +8,7 @@ export type StudioShowcaseCmsEntry = {
     content?: Record<string, unknown>;
     pages?: Record<string, unknown>;
   };
-  theme?: { accent?: string };
+  theme?: { accent?: string; headingOnDark?: string; bodyOnDark?: string };
 };
 
 export type StudioShowcaseCms = Record<string, StudioShowcaseCmsEntry>;
