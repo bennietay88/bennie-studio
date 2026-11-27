@@ -46,11 +46,39 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
       }
       if(records.error)throw records.error;
       const sites=(records.data||[]).map((s:any)=>({...s,seo:{title:typeof s.seo?.title==="string"?s.seo.title:""},archived_at:s.archived_at||null}));
-      const {count,error:ce}=await db.from("websites").select("id",{count:"exact",head:true}).eq("business_id",businessId).eq("is_internal_pilot",false).limit(1);
-      if(ce)throw ce;
-      const used=schemaReady?sites.filter((s:any)=>!s.archived_at).length:count||0;
+      // Count allocations independently of the paginated portfolio. Include
+      // reserved/internal rows, matching the database quota trigger.
+      let countQuery=db.from("websites").select("id",{count:"exact",head:true}).eq("business_id",businessId);
+      if(schemaReady)countQuery=countQuery.is("archived_at",null);
+      const {count,error:ce}=await countQuery;
+      if(ce||count===null)throw ce||new Error("Website count unavailable");
+      const used=count;
       const capacity=websiteCapacity({websiteLimit:plans.data?.website_limit,websitesUsed:used,projectLimit:plans.data?.project_limit??null,pagesPerWebsite:pagePlan.maxPages,locationPagesPerWebsite:pagePlan.maxLocationPages});
       return res.json({businessId,sites,capacity,lifecycleEnabled:schemaReady&&enabled()&&business.status==="active"&&business.subscription_status==="active"});
+    }catch(error){return report(res,error);}
+  });
+  app.get("/api/account/websites/:siteId/overview",authenticate,async(req:any,res:any)=>{
+    res.setHeader("Cache-Control","private, no-store");
+    const parsed=z.string().uuid().safeParse(req.params.siteId);
+    if(!parsed.success)return res.status(400).json({error:"Invalid website ID"});
+    const days=z.coerce.number().int().refine(v=>[7,30,90].includes(v)).safeParse(req.query.days??30);
+    if(!days.success)return res.status(400).json({error:"Choose a 7, 30 or 90 day period"});
+    try{
+      const profile=await actor(req,res);if(!profile)return;
+      const businessId=profile.business_id, siteId=parsed.data;
+      const {data:site,error:siteError}=await db.from("websites").select("id,business_id,name,status").eq("business_id",businessId).eq("id",siteId).eq("is_internal_pilot",false).maybeSingle();
+      if(siteError)throw siteError;
+      if(!site)return res.status(404).json({error:"Website not found"});
+      const since=new Date(Date.now()-days.data*86400000).toISOString();
+      const scoped=(table:string)=>db.from(table).select("id",{count:"exact",head:true}).eq("business_id",businessId).eq("website_id",siteId).gte("created_at",since);
+      const [views,events,leads,recent]=await Promise.all([
+        scoped("page_views").not("page_path","like","%:%"),
+        scoped("tracking_events"),
+        scoped("leads"),
+        db.from("leads").select("id,name,status,created_at,source").eq("business_id",businessId).eq("website_id",siteId).gte("created_at",since).order("created_at",{ascending:false}).limit(10)
+      ]);
+      for(const result of [views,events,leads,recent])if(result.error)throw result.error;
+      return res.json({siteId,businessId,days:days.data,since,pageViews:views.count??0,interactions:events.count??0,leads:leads.count??0,recentLeads:recent.data||[]});
     }catch(error){return report(res,error);}
   });
   app.post("/api/account/websites", authenticate, async(req:any,res:any)=>{
