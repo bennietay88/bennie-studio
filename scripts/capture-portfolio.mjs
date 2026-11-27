@@ -33,6 +33,10 @@ async function capture(item,mobile) {
    await Promise.race([Promise.allSettled(images.map(image=>image.decode())),new Promise(resolve=>setTimeout(resolve,8000))]);
    window.scrollTo(0,0);
   });
+  const hero=page.getByTestId("demo-industry-photo").first();
+  await hero.waitFor({state:"visible",timeout:15000});
+  await hero.evaluate(image=>image.decode());
+  if(!await hero.evaluate(image=>image.complete&&image.naturalWidth>=500))throw Error(item.slug+" industry photograph did not load");
   const kind=mobile?"mobile":"desktop";
   const full=await page.screenshot({fullPage:true,type:"jpeg",quality:84,animations:"disabled"});
   if(full.length<1024||full.length>4000000) throw Error(item.slug+" "+kind+" invalid size "+full.length);
