@@ -1,3 +1,4 @@
+import { registerWebsiteOperationsRoutes } from "./websiteOperationsRoutes.js";
 import { registerWebsiteReleaseRoutes } from "./websiteReleaseRoutes.js";
 import { registerWebsiteDomainRoutes } from "./websiteDomainRoutes.js";
 import { z } from "zod";
@@ -14,6 +15,7 @@ const quota = z.object({websiteLimit:z.number().int().min(0).max(1000)}).strict(
 export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any, getProfile:any) {
   registerWebsiteDomainRoutes(app,db,authenticate,getProfile);
   registerWebsiteReleaseRoutes(app,db,authenticate,getProfile);
+  registerWebsiteOperationsRoutes(app,db,authenticate,getProfile);
   const enabled = () => process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true";
   async function actor(req:any,res:any) {
     const profile = await getProfile(req.user.id);
