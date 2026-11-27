@@ -750,6 +750,7 @@ function GoogleReviewsEditor({
 
 interface WebsiteEditorProps {
   businessIdOverride?: string;
+  websiteIdOverride?: string;
   templateIdOverride?: string;
   forceShowGenerator?: boolean;
   onTemplateCreated?: (templateId: string) => void;
@@ -757,6 +758,7 @@ interface WebsiteEditorProps {
 
 export function WebsiteEditor({
   businessIdOverride,
+  websiteIdOverride,
   templateIdOverride,
   forceShowGenerator,
   onTemplateCreated,
@@ -1191,6 +1193,9 @@ export function WebsiteEditor({
         
         // 1. Fetch content (Website or Template)
         const fetchContent = async (id: string, attempt = 1): Promise<any> => {
+          if (!isTemplateMode && websiteIdOverride) {
+            return supabase.from("websites").select("*").eq("business_id", id).eq("id", websiteIdOverride).maybeSingle();
+          }
           const res = await (isTemplateMode
             ? templateIdOverride === "new"
               ? Promise.resolve({ data: null, error: null })
@@ -1381,7 +1386,7 @@ export function WebsiteEditor({
     } finally {
       setLoading(false);
     }
-  }, [businessId, isTemplateMode, templateIdOverride, resetSeo]);
+  }, [businessId, isTemplateMode, templateIdOverride, websiteIdOverride, resetSeo]);
 
   useEffect(() => {
     fetchData();
@@ -1413,7 +1418,7 @@ export function WebsiteEditor({
             event: "*",
             schema: "public",
             table: "websites",
-            filter: `business_id=eq.${businessId}`,
+            filter: websiteIdOverride ? `id=eq.${websiteIdOverride}` : `business_id=eq.${businessId}`,
           },
           () => {
             if (!isDeleting) {
@@ -1426,13 +1431,13 @@ export function WebsiteEditor({
         supabase.removeChannel(channel);
       };
     }
-  }, [businessId, isTemplateMode, fetchData, isDeleting]);
+  }, [businessId, isTemplateMode, fetchData, isDeleting, websiteIdOverride]);
 
   useEffect(() => {
     const shouldShowGenerator =
-      Boolean(forceShowGenerator) || location.pathname.includes("/regenerate");
+      !websiteIdOverride && (Boolean(forceShowGenerator) || location.pathname.includes("/regenerate"));
     setShowGenerator(shouldShowGenerator);
-  }, [forceShowGenerator, location.pathname]);
+  }, [forceShowGenerator, location.pathname, websiteIdOverride]);
 
   const handleSmartBuild = async () => {
     if (!website || !business) return;
@@ -1639,6 +1644,8 @@ export function WebsiteEditor({
 
   const handleSave = async (data?: any) => {
     if (!website) return;
+    if (websiteIdOverride && (website.id !== websiteIdOverride || website.businessId !== businessId)) { toast.error("Selected website does not match the current workspace."); return; }
+    if (websiteIdOverride && activeTab === "tracking") { toast.info("Tracking remains account-level until site-specific tracking is enabled."); return; }
     if (website.status === "published" && !isInternalOperator) {
       toast.info("Live website changes are handled through the managed update workflow so production stays protected.");
       navigate("/dashboard/update-requests");
@@ -1760,11 +1767,12 @@ export function WebsiteEditor({
         const websitePromise = supabase
           .from("websites")
           .update(updatedWebsiteConfig)
-          .eq("id", website.id);
+          .eq("id", website.id)
+          .eq("business_id", website.businessId);
 
         // Also update business tracking settings if in tracking tab
         let businessPromise: Promise<any> = Promise.resolve({ error: null });
-        if (activeTab === "tracking" && business) {
+        if (activeTab === "tracking" && business && !websiteIdOverride) {
           businessPromise = supabase
             .from("businesses")
             .update({
@@ -1804,6 +1812,7 @@ export function WebsiteEditor({
 
   const handlePublish = async () => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Independent publication requires site-level routing and approval."); return; }
     if (!isInternalOperator) {
       await handleUpdateWorkflowStatus("in_review");
       toast.info("Submitted for Bennie Studio review. An internal operator must approve launch.");
@@ -1873,6 +1882,7 @@ export function WebsiteEditor({
 
   const handleUpdateStatus = async (newStatus: "published" | "draft") => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Site publication changes are not yet enabled."); return; }
     if (newStatus === "draft" && website.status === "published" && !isInternalOperator) {
       toast.error("Live managed websites can only be unpublished by the Bennie Studio delivery team.");
       return;
@@ -1937,6 +1947,7 @@ export function WebsiteEditor({
 
   const handleUpdateWorkflowStatus = async (newStatus: WebsiteWorkflowStatus) => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Site-specific approvals are not yet enabled."); return; }
     if (website.status === "published" && newStatus !== "live" && !isInternalOperator) {
       toast.error("The delivery team manages workflow changes for a live website.");
       return;
@@ -1998,6 +2009,7 @@ export function WebsiteEditor({
 
   const handleDeleteWebsite = async () => {
     if (!website) return;
+    if (websiteIdOverride) { toast.info("Site removal is not yet enabled."); return; }
     if (!isInternalOperator) {
       toast.error("Managed websites can only be deleted by the Bennie Studio delivery team.");
       setShowDeleteConfirm(false);
@@ -4442,7 +4454,11 @@ export function WebsiteEditor({
     );
   }
 
-  if (showGenerator) {
+  if (websiteIdOverride && !website && !loading) {
+    return <div role="alert" className="rounded-xl border p-6"><h2 className="font-semibold">Selected website unavailable</h2><p className="text-sm text-slate-500">No other website was selected. Return to My Websites to choose another site.</p><Button variant="outline" onClick={()=>fetchData()}>Retry</Button></div>;
+  }
+
+  if (showGenerator && !websiteIdOverride) {
     return (
       <div className="space-y-6">
         <Button
@@ -4762,6 +4778,7 @@ export function WebsiteEditor({
                     size="sm"
                     className="text-xs font-bold text-slate-500 hover:text-indigo-600 gap-2 rounded-xl whitespace-nowrap"
                     onClick={() => setShowGenerator(true)}
+                    disabled={Boolean(websiteIdOverride)}
                   >
                     <Sparkles className="h-3 w-3" />{" "}
                     <span className="hidden sm:inline">Deploy Framework</span>
