@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { demoNavigation } from "../src/lib/demoDesignProfiles";
 import { EXPANDED_DEMO_SLUGS } from "../src/lib/studioInteractiveDemos";
 
 async function mockDependencies(page:any) {
@@ -25,9 +26,9 @@ for (const slug of EXPANDED_DEMO_SLUGS) {
 
     if (isMobile) {
       await page.getByRole("button",{name:"Open demo navigation"}).click();
-      await page.getByRole("navigation",{name:"Mobile demo navigation"}).getByRole("link",{name:"Services"}).click();
+      await page.getByRole("navigation",{name:"Mobile demo navigation"}).getByRole("link",{name:demoNavigation(slug,"services")}).click();
     } else {
-      await page.getByRole("navigation",{name:"Demo website navigation"}).getByRole("link",{name:"Services"}).click();
+      await page.getByRole("navigation",{name:"Demo website navigation"}).getByRole("link",{name:demoNavigation(slug,"services")}).click();
     }
     await expect(page).toHaveURL(new RegExp(root+"/services$"));
     await expect(page.getByRole("group",{name:"Select a service"}).getByRole("button")).toHaveCount(3);
