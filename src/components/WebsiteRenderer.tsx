@@ -358,6 +358,7 @@ export function WebsiteRenderer({
   initialData,
   activePageSlug: propActivePageSlug,
   businessIdOverride,
+  websiteIdOverride,
   isTemplatePreview = false,
   enableRealtime = true,
   isEditingPreview = false,
@@ -366,6 +367,7 @@ export function WebsiteRenderer({
   initialData?: Website;
   activePageSlug?: string;
   businessIdOverride?: string;
+  websiteIdOverride?: string;
   isTemplatePreview?: boolean;
   enableRealtime?: boolean;
   isEditingPreview?: boolean;
@@ -378,9 +380,9 @@ export function WebsiteRenderer({
   const businessId = initialData?.businessId || businessIdOverride || businessIdFromParams;
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
-  const draftPreview = searchParams.get("draft") === "1" || searchParams.get("draft") === "true";
+  const draftPreview = !websiteIdOverride && (searchParams.get("draft") === "1" || searchParams.get("draft") === "true");
   const isThumbnail = searchParams.get("thumbnail") === "1";
-  const requestedWebsiteId = searchParams.get("website");
+  const requestedWebsiteId = websiteIdOverride || searchParams.get("website");
   const { isFeatureEnabled } = useFeatures();
   const [website, setWebsite] = useState<Website | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
@@ -525,7 +527,7 @@ export function WebsiteRenderer({
     label: string,
     metadata: Record<string, any> = {},
   ) => {
-    if (isEditingPreview || !website || website.id === "preview" || website.theme?.previewPurpose) return;
+    if (isEditingPreview || draftPreview || !website || website.status !== "published" || website.id === "preview" || website.theme?.previewPurpose) return;
 
     try {
       const { visitorId, sessionId } = getTrackingIds();
@@ -535,6 +537,7 @@ export function WebsiteRenderer({
         keepalive: true,
         body: JSON.stringify({
           businessId: website.businessId,
+          websiteId: website.id,
           visitorId,
           sessionId,
           eventType,
@@ -1135,7 +1138,7 @@ export function WebsiteRenderer({
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!website) return;
-    if (website.theme?.previewPurpose) {
+    if (isEditingPreview || draftPreview || website.status !== "published" || website.theme?.previewPurpose) {
       setFormSuccess(true);
       setLeadForm({ name: "", email: "", phone: "", service: "", message: "", marketingConsent: false });
       toast.info("Preview only. No real enquiry was sent.");
@@ -1151,6 +1154,7 @@ export function WebsiteRenderer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessId: website.businessId,
+          websiteId: website.id,
           ...leadForm,
           visitorId,
           sessionId,
@@ -1216,6 +1220,7 @@ export function WebsiteRenderer({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessId: website.businessId,
+          websiteId: website.id,
           visitorId,
           sessionId,
           eventType: "appointment_requested",
