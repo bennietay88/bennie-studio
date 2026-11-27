@@ -79,3 +79,74 @@
  .bt-demo-design[data-demo-layout="landscape"] .bt-demo-media figure {border-radius:72px 72px 8px 8px}
 }
 @media(prefers-reduced-motion:reduce){.bt-demo-design *{scroll-behavior:auto!important;transition:none!important}}
+
+/* Bespoke industry blocks, kept separate from marketing and dashboard CSS. */
+.bt-industry-experience {padding:clamp(44px,6vw,90px) max(5vw,22px);background:var(--demo-muted,var(--demo-bg,#fff));color:var(--demo-muted-ink,var(--demo-ink,#172033))}
+.bt-industry-experience>div {max-width:1160px;margin:auto}
+.bt-signature-heading {margin-bottom:30px}
+.bt-signature-heading>span {font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:.14em}
+.bt-signature-heading h2 {font-size:clamp(1.85rem,3.5vw,3.5rem);line-height:1.12;max-width:23ch;margin-top:12px}
+.bt-industry-experience h3 {font-size:1.25rem;font-weight:700;line-height:1.25;margin:12px 0}
+.bt-industry-experience p {font-size:15px;line-height:1.6;opacity:1}
+.bt-signature-action {display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:12px 20px;background:var(--demo-accent);color:var(--demo-accent-ink);font-weight:700;border-radius:4px;font-size:14px;margin-top:18px}
+.bt-signature-link {display:inline-flex;gap:8px;align-items:center;text-decoration:underline;text-underline-offset:4px;font-size:14px;font-weight:650;margin-top:12px}
+.bt-signature-field {display:grid;gap:7px;font-size:14px;font-weight:650;min-width:0}
+.bt-signature-field select {min-height:48px;width:100%;padding:8px 12px;color:var(--demo-ink);background:var(--demo-bg);border:1px solid currentColor;border-radius:4px}
+.bt-signature-checks {display:grid;gap:14px;list-style:none;padding:0}
+.bt-signature-checks li {display:flex;gap:10px;align-items:center}
+.bt-signature-note {padding-top:20px;font-size:13px}
+.bt-sig-paths,.bt-sig-learning-levels,.bt-sig-auto-grid,.bt-sig-material-grid,.bt-sig-training-grid,.bt-sig-event-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.bt-sig-paths>a,.bt-sig-learning-levels>article {padding:24px;background:var(--demo-bg);color:var(--demo-ink);border-radius:16px}
+.bt-sig-paths>a>span {display:flex;align-items:center;gap:8px;margin-top:18px;font-weight:700}
+.bt-sig-appointment>aside,.bt-sig-automotive>aside {display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:22px;border-top:1px solid currentColor;padding-top:22px}
+.bt-sig-project-grid,.bt-sig-checklist,.bt-sig-technical-grid {display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:start}
+.bt-sig-project-grid article {display:flex;gap:20px;border-top:1px solid currentColor;padding:18px 0}
+.bt-sig-project-grid article>span {font-family:Georgia,serif;font-size:2rem}
+.bt-sig-project-grid aside,.bt-sig-checklist aside,.bt-sig-technical-grid aside {padding:25px;background:var(--demo-bg);color:var(--demo-ink);border:1px solid currentColor}
+.bt-sig-project-grid aside label+label {margin-top:16px}
+.bt-sig-editorial>div {display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:center;border-top:1px solid currentColor;padding:30px 0}
+.bt-sig-editorial blockquote {font-family:Georgia,serif;font-size:clamp(1.8rem,3.3vw,3.25rem);line-height:1.15}
+.bt-sig-learning-levels article:nth-child(2) {border-radius:40px 8px 40px 8px}
+.bt-sig-learning-levels article>span {display:block;font-size:12px;margin-top:12px}
+.bt-sig-menu .bt-signature-heading {text-align:center}
+.bt-sig-menu .bt-signature-heading h2 {margin-inline:auto}
+.bt-sig-menu-list article {display:grid;grid-template-columns:100px 1fr 1.3fr auto;align-items:center;gap:20px;border-bottom:1px solid currentColor;padding:18px 0}
+.bt-sig-recovery-grid {display:grid;grid-template-columns:100px 1.5fr 1fr;gap:30px;align-items:center}
+.bt-sig-recovery-grid aside {border-left:2px solid currentColor;padding-left:20px;font-size:14px}
+.bt-sig-property-bar,.bt-sig-quote-grid {display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;align-items:end;padding:24px;background:var(--demo-bg);color:var(--demo-ink);border:1px solid currentColor}
+.bt-sig-property>p {display:flex;gap:8px;align-items:center;margin-top:16px}
+.bt-sig-quote>p {margin-top:15px}
+.bt-sig-technical-grid {grid-template-columns:1fr 1fr}
+.bt-sig-technical-grid>div {display:grid;gap:20px}
+.bt-sig-landscape>div:not(.bt-signature-heading) {display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:0;border-top:1px solid currentColor}
+.bt-sig-landscape article {padding:26px 20px;border-bottom:1px solid currentColor}
+.bt-sig-landscape article:first-child {background:var(--demo-bg);color:var(--demo-ink)}
+.bt-sig-strategy-flow {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}
+.bt-sig-strategy-flow article {padding:28px;background:var(--demo-bg);color:var(--demo-ink);border-top:4px solid var(--demo-accent)}
+.bt-sig-material-grid article>div {height:150px}
+.bt-sig-material-grid article:nth-child(2)>div {height:220px}
+.bt-sig-material-grid article:nth-child(3)>div {height:180px}
+.bt-sig-automotive .bt-signature-heading h2 {font-weight:900;text-transform:uppercase}
+.bt-sig-auto-grid article {padding:24px;border:1px solid #697375;background:#151a1c;color:#f8f5ee}
+.bt-sig-auto-grid article>span {font-size:12px;color:#e4c79a}
+.bt-sig-training-grid article {border-top:6px solid var(--demo-accent);padding:24px;background:var(--demo-bg);color:var(--demo-ink)}
+.bt-sig-training-grid article>span {font-size:44px;font-weight:900}
+.bt-sig-photo-index ol {list-style:none;padding:0}
+.bt-sig-photo-index li {display:grid;grid-template-columns:45px 30px 1fr auto;align-items:center;gap:15px;padding:18px 0;border-top:1px solid currentColor}
+.bt-sig-pet-grid {display:grid;grid-template-columns:100px 1fr;gap:24px;align-items:center;padding:25px;background:var(--demo-bg);color:var(--demo-ink);border-radius:48px 12px 48px 12px}
+.bt-sig-pet>p {margin-top:15px}
+.bt-sig-event-grid article {border-top:1px solid currentColor;padding:22px 0}
+.bt-sig-event-grid article>span {font-family:Georgia,serif;font-size:38px}
+.bt-demo-design[data-demo-services="rows"] .bt-demo-service-grid>article {display:grid;grid-template-columns:55px 1fr 1.5fr;align-items:center;gap:20px;border-radius:0;border-width:0 0 1px;padding:18px}
+.bt-demo-design[data-demo-services="rows"] .bt-demo-service-grid>article :is(h3,p) {margin:0}
+.bt-demo-design[data-demo-services="menu"] .bt-demo-service-grid>article {border-radius:0;border-width:0 0 1px}
+.bt-demo-design[data-demo-layout="cinematic"] .bt-demo-hero .bt-demo-copy>p:last-child {color:#f8f5ee;opacity:1}
+.bt-demo-design[data-demo-layout="cinematic"] .bt-demo-copy h1 {color:#fff}
+.bt-demo-design[data-demo-layout="cinematic"] .bt-demo-copy>div>a:first-child {color:var(--demo-accent-ink)}
+.bt-demo-design[data-demo-layout="cinematic"] :is(p,span)[class*="opacity-"] {opacity:1}
+@media(max-width:767px){
+ .bt-sig-paths,.bt-sig-learning-levels,.bt-sig-auto-grid,.bt-sig-material-grid,.bt-sig-training-grid,.bt-sig-event-grid,.bt-sig-project-grid,.bt-sig-checklist,.bt-sig-technical-grid,.bt-sig-editorial>div,.bt-sig-recovery-grid,.bt-sig-property-bar,.bt-sig-quote-grid,.bt-sig-landscape>div:not(.bt-signature-heading),.bt-sig-strategy-flow,.bt-sig-pet-grid {grid-template-columns:minmax(0,1fr);gap:16px}
+ .bt-sig-menu-list article,.bt-sig-photo-index li {grid-template-columns:minmax(0,1fr);gap:8px}
+ .bt-sig-material-grid article>div,.bt-sig-material-grid article:nth-child(2)>div,.bt-sig-material-grid article:nth-child(3)>div {height:120px}
+ .bt-demo-design[data-demo-services="rows"] .bt-demo-service-grid>article {grid-template-columns:minmax(0,1fr);gap:10px}
+}
