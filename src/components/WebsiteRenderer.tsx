@@ -423,7 +423,7 @@ export function WebsiteRenderer({
   const [formSuccess, setFormSuccess] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [activePageSlug, setActivePageSlug] = useState(
-    propActivePageSlug || "home",
+    propActivePageSlug || (websiteIdOverride ? window.location.pathname.replace(/^\/+|\/+$/g,"") || "home" : "home"),
   );
 
   const scrollPreviewToTop = (behavior: ScrollBehavior = "auto") => {
@@ -778,7 +778,8 @@ export function WebsiteRenderer({
         const { data: rows, error } = await query.order("is_primary", { ascending: false }).limit(2);
         if (error) throw error;
         const selected = requestedWebsiteId ? rows?.[0] : choosePrimaryWebsite(rows || []);
-        const data = selected && (draftPreview || selected.status === "published") ? selected : null;
+        const data = selected && !selected.is_internal_pilot && !selected.archived_at &&
+          (draftPreview || (selected.status === "published" && (selected.is_primary !== false || Boolean(websiteIdOverride)))) ? selected : null;
 
         if (data) {
           const theme = { ...data.theme };

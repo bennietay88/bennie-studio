@@ -11,6 +11,7 @@ export interface PortfolioSite {
   status: string;
   updated_at?: string | null;
   seo?: { title?: string } | null;
+  preview?: {primary:string;secondary:string;title:string;description:string};
 }
 
 export function siteLabel(site: PortfolioSite): string {

@@ -318,10 +318,12 @@ export async function generateGeoContent(
   location: string,
   businessNature: string,
   businessId?: string,
+  websiteId?: string,
 ) {
   const prompt = `Generate SEO/GEO metadata for ${businessName}.`;
   return await askAI("seo", prompt, {
     businessId,
+    websiteId,
     featureKey: "seo_meta",
     isJson: true
   });
@@ -334,7 +336,8 @@ export async function generateMarketingContent(
   type: string,
   context: any,
 ) {
-  const businessId = context?.id || context?.businessId;
+  const businessId = context?.businessId || context?.id;
+  const websiteId = context?.websiteId;
   if (type === "seo_audit") {
     const prompt = `Review the supplied website SEO context as a practical website growth consultant.
 
@@ -411,12 +414,13 @@ export async function improveHeadline(
   businessName: string,
   industry: string,
   businessId?: string,
+  websiteId?: string,
 ) {
   const prompt = `Rewrite this headline for higher conversion: "${headline}". 
   Business: ${businessName} in ${industry}. 
   Keep it punchy, emotional, and benefit-driven. Max 10 words. 
   Return only the new headline text.`;
-  return await askAI("copy", prompt, { businessId });
+  return await askAI("copy", prompt, { businessId, websiteId });
 }
 
 /**
@@ -427,12 +431,13 @@ export async function rewriteSubheadline(
   businessName: string,
   industry: string,
   businessId?: string,
+  websiteId?: string,
 ) {
   const prompt = `Rewrite this supporting text/subheadline to be more persuasive: "${subheadline}". 
   Business: ${businessName} in ${industry}. 
   Tone: Professional but compelling. Max 40 words. 
   Return only the new content text.`;
-  return await askAI("copy", prompt, { businessId });
+  return await askAI("copy", prompt, { businessId, websiteId });
 }
 
 /**
@@ -443,11 +448,12 @@ export async function generateSEOMetadata(
   industry: string,
   businessNature: string,
   businessId?: string,
+  websiteId?: string,
 ) {
   const prompt = `Generate conversion-optimized SEO metadata for ${businessName} (${industry}). 
   Description context: ${businessNature}. 
   Return JSON: { "title": "SEO title", "description": "Meta description", "keywords": ["kw1", "kw2"] }`;
-  return await askAI("seo", prompt, { businessId, isJson: true });
+  return await askAI("seo", prompt, { businessId, websiteId, isJson: true });
 }
 
 /**
@@ -458,9 +464,10 @@ export async function generateFAQs(
   industry: string,
   services: string[],
   businessId?: string,
+  websiteId?: string,
 ) {
   const prompt = `Generate 5 professional FAQ items with answers for ${businessName} in ${industry}. 
   Services: ${services.join(", ")}. 
   Return JSON array: [{"question": "...", "answer": "..."}]`;
-  return await askAI("copy", prompt, { businessId, isJson: true });
+  return await askAI("copy", prompt, { businessId, websiteId, isJson: true });
 }

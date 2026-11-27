@@ -1,3 +1,4 @@
+import { matchWebsiteRedirect } from "./src/lib/websiteRedirects.js";
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "./src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "./src/lib/primaryWebsite.js";
 import { next, rewrite } from "@vercel/functions";
@@ -144,6 +145,14 @@ export default async function middleware(request: Request) {
     }
     const xml='<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+Array.from(paths,p=>"<url><loc>"+origin+p+"</loc></url>").join("")+"</urlset>";
     return new Response(xml,{headers:{"content-type":"application/xml; charset=utf-8","cache-control":"no-store"}});
+  }
+  if(process.env.MULTI_SITE_DRAFT_LIFECYCLE==="true"){
+    const rows=await fetchSupabase("websites?select=id,business_id,seo&business_id=eq."+encodeURIComponent(result.businessId)+"&id=eq."+encodeURIComponent(result.websiteId)+"&limit=1").catch(()=>[]);
+    const site=rows?.[0];
+    if(site?.id===result.websiteId&&site.business_id===result.businessId){
+      const rule=matchWebsiteRedirect(site.seo?.siteRedirects,url.pathname);
+      if(rule){const target=new URL(url);target.pathname=rule.to;target.search="";return new Response(null,{status:rule.status,headers:{Location:target.toString(),"Cache-Control":"no-store"}});}
+    }
   }
   const headers = new Headers(request.headers);
   headers.set("x-bts-tenant-host", host);

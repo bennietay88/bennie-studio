@@ -1,3 +1,4 @@
+import WebsiteRedirectPanel from "./WebsiteRedirectPanel";
 import WebsiteBackupPanel from "./WebsiteBackupPanel";
 import WebsiteContentExport from "./WebsiteContentExport";
 import WebsiteReleasePanel from "./WebsiteReleasePanel";
@@ -35,6 +36,6 @@ export default function WebsitePortfolioEditor() {
   return <div className="space-y-4">
     <Link to="/dashboard/websites" className="inline-block text-sm font-semibold text-indigo-600" onClick={e=>{if(current?.site && !window.confirm("Return to My Websites? Unsaved editor changes will be lost."))e.preventDefault();}}>← My Websites</Link>
     {!current ? <p role="status">Loading selected website…</p> : !current.site ? <p role="alert">This website is not available in your workspace.</p> :
-      <><h1 className="text-xl font-semibold">{siteLabel(current.site)}</h1>{current.site.is_primary===false&&<WebsiteDomainPanel key={scope} siteId={siteId} businessId={businessId}/>}{current.site.is_primary===false&&<WebsiteReleasePanel key={"release:"+scope} siteId={siteId} businessId={businessId}/>}<WebsiteBackupPanel key={"backup:"+scope} siteId={siteId} businessId={businessId}/><WebsiteContentExport key={"export:"+scope} siteId={siteId} businessId={businessId}/><WebsiteSiteOverview key={scope} siteId={siteId} businessId={businessId}/><WebsiteEditor key={scope} websiteIdOverride={siteId}/></>}
+      <><h1 className="text-xl font-semibold">{siteLabel(current.site)}</h1>{current.site.is_primary===false&&<WebsiteDomainPanel key={scope} siteId={siteId} businessId={businessId}/>}{current.site.is_primary===false&&<WebsiteReleasePanel key={"release:"+scope} siteId={siteId} businessId={businessId}/>}{current.site.is_primary===false&&<WebsiteRedirectPanel key={"redirect:"+scope} siteId={siteId} businessId={businessId}/>}<WebsiteBackupPanel key={"backup:"+scope} siteId={siteId} businessId={businessId}/><WebsiteContentExport key={"export:"+scope} siteId={siteId} businessId={businessId}/><WebsiteSiteOverview key={scope} siteId={siteId} businessId={businessId}/><WebsiteEditor key={scope} websiteIdOverride={siteId}/></>}
   </div>;
 }

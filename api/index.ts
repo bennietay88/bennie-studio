@@ -13189,7 +13189,7 @@ async function startServer() {
       });
       const [{ data: business, error: businessError }, { data: website, error: websiteError }, { data: project, error: projectError }] = await Promise.all([
         supabaseAdmin.from("businesses").select("id,name,lifecycle_stage").eq("id", businessId).maybeSingle(),
-        supabaseAdmin.from("websites").select("id,status,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,updated_at").eq("business_id", businessId).eq("is_primary",true).maybeSingle(),
         supabaseAdmin.from("projects").select("id,status").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
       ]);
       if (businessError) throw businessError;
@@ -13393,7 +13393,7 @@ async function startServer() {
 
       const [businessResult, websiteResult, projectResult, approvalResult, onboardingResult] = await Promise.all([
         supabaseAdmin.from("businesses").select("id,name,custom_domain,custom_domain_status,ssl_status,lifecycle_stage,onboarding_completed_at,ga_measurement_id,meta_pixel_id,tracking_scripts_header,tracking_scripts_footer").eq("id", businessId).maybeSingle(),
-        supabaseAdmin.from("websites").select("id,status,pages,theme,seo,button_health,validation_report,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        supabaseAdmin.from("websites").select("id,status,pages,theme,seo,button_health,validation_report,updated_at").eq("business_id", businessId).eq("is_primary",true).maybeSingle(),
         supabaseAdmin.from("projects").select("id,status,launch_blocker,delivery_checklist,target_launch_date,updated_at").eq("business_id", businessId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("customer_approvals").select("id,status,responded_at,updated_at").eq("business_id", businessId).order("requested_at", { ascending: false }).limit(1).maybeSingle(),
         supabaseAdmin.from("onboarding_sessions").select("id,status,progress,current_step,updated_at").eq("business_id", businessId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -13572,8 +13572,7 @@ async function startServer() {
             .from("websites")
             .select("id,status,seo,updated_at")
             .eq("business_id", businessId)
-            .order("updated_at", { ascending: false })
-            .limit(1)
+            .eq("is_primary",true)
             .maybeSingle(),
           supabaseAdmin
             .from("projects")
@@ -13689,6 +13688,7 @@ async function startServer() {
               .select("id,business_id")
               .eq("id", body.websiteId)
               .eq("business_id", body.businessId)
+              .eq("is_primary",true)
               .maybeSingle();
             if (onboardingWebsiteError) throw onboardingWebsiteError;
             if (!onboardingWebsite) {
@@ -15351,6 +15351,10 @@ async function startServer() {
         });
       }
 
+      if(process.env.MULTI_SITE_DRAFT_LIFECYCLE==="true"){
+        const {data:claimed,error:ce}=await supabaseAdmin.from("websites").select("id").in("custom_domain",candidates).eq("is_primary",false).limit(1);
+        if(ce)throw ce;if(claimed?.length)return res.status(409).json({error:"This domain is reserved by an independent website."});
+      }
       const vercelDomain = await ensureVercelProjectDomain(domain).catch((error: any) => ({
         configured: isVercelDomainsConfigured(),
         error: error?.message || "Vercel domain sync failed",
@@ -15445,6 +15449,9 @@ async function startServer() {
 
     try {
       await assertBusinessAdminAccess(req.user.id, body.businessId, ["delivery"]);
+      const {data:assigned,error:assignmentError}=await supabaseAdmin.from("businesses").select("custom_domain").eq("id",body.businessId).single();
+      if(assignmentError)throw assignmentError;
+      if(normalizeDomainInput(assigned?.custom_domain||"")!==domain)return res.status(409).json({error:"Domain is not assigned to this business."});
       if (isVercelDomainsConfigured()) {
         await removeVercelProjectDomain(domain).catch((error: any) => {
           if (Number(error?.status) !== 404) throw error;
@@ -15463,7 +15470,7 @@ async function startServer() {
           ssl_checked_at: new Date().toISOString(),
           domain_dns_records: [],
         })
-        .eq("id", body.businessId);
+        .eq("id", body.businessId).eq("custom_domain",assigned.custom_domain);
       if (updateError) throw updateError;
       res.json({ success: true });
     } catch (error: any) {

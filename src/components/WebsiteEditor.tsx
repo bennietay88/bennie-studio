@@ -991,6 +991,7 @@ export function WebsiteEditor({
           nameText,
           industryText,
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "subheadline") {
         result = await rewriteSubheadline(
@@ -998,6 +999,7 @@ export function WebsiteEditor({
           nameText,
           industryText,
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "faq") {
         const services = [
@@ -1010,6 +1012,7 @@ export function WebsiteEditor({
           industryText,
           services,
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "seo") {
         result = await generateSEOMetadata(
@@ -1017,11 +1020,14 @@ export function WebsiteEditor({
           industryText,
           business.business_nature || business.description || "",
           business.id,
+          websiteIdOverride ? website?.id : undefined,
         );
       } else if (field === "marketing" && sectionId && currentValue) {
         result = await generateMarketingContent(currentValue, {
           ...business,
           ...website,
+          businessId:business.id,
+          websiteId:websiteIdOverride?website?.id:undefined,
         });
       }
 
@@ -10880,6 +10886,7 @@ export function WebsiteEditor({
                             targetBusiness.location,
                             targetBusiness.business_nature || "",
                             bId !== "template" ? bId : undefined,
+                            websiteIdOverride ? website?.id : undefined,
                           );
 
                           // Update current state and form
@@ -11432,6 +11439,8 @@ export function WebsiteEditor({
                                   location: business?.location,
                                   targetAudience: website?.seo.targetAudience,
                                   currentSeo: website?.seo,
+                                  businessId:website?.businessId,
+                                  websiteId:websiteIdOverride?website?.id:undefined,
                                 },
                               );
                               setSeoAudit(result);
@@ -11477,6 +11486,8 @@ export function WebsiteEditor({
                                     location: business?.location,
                                     targetAudience: website?.seo.targetAudience,
                                     currentSeo: website?.seo,
+                                  businessId:website?.businessId,
+                                  websiteId:websiteIdOverride?website?.id:undefined,
                                   },
                                 );
                                 setSeoAudit(result);

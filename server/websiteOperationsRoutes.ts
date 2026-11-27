@@ -32,6 +32,23 @@ export function registerWebsiteOperationsRoutes(app:any,db:any,authenticate:any,
    return res.json({enabled:true,sites:(data||[]).slice(0,50),hasMore:(data||[]).length>50});
   }catch(e){return fail(res,e);}
  });
+ app.get("/api/admin/website-operations/:siteId/audit",authenticate,async(req:any,res:any)=>{
+  res.setHeader("Cache-Control","private, no-store");
+  if(!enabled())return res.status(503).json({error:"Website lifecycle disabled"});
+  if(!uuid.safeParse(req.params.siteId).success)return res.status(400).json({error:"Invalid website ID"});
+  try{const profile=await getProfile(req.user.id);if(profile?.status!=="active"||(profile.role!=="super_admin"&&!(profile.role==="platform_staff"&&profile.staff_permissions?.includes("activity_logs"))))return res.status(403).json({error:"Audit access required"});
+   const {data,error}=await db.from("website_lifecycle_audit").select("id,action,actor_id,created_at,details").eq("website_id",req.params.siteId).order("created_at",{ascending:false}).limit(100);
+   if(error)throw error;return res.json({siteId:req.params.siteId,events:data||[]});
+  }catch(e){return fail(res,e);}
+ });
+ app.get("/api/admin/website-commercial-audit",authenticate,async(req:any,res:any)=>{
+  res.setHeader("Cache-Control","private, no-store");
+  if(!enabled())return res.status(503).json({error:"Website lifecycle disabled"});
+  try{const profile=await getProfile(req.user.id);if(profile?.status!=="active"||profile.role!=="super_admin")return res.status(403).json({error:"Super administrator access required"});
+   const {data,error}=await db.from("website_lifecycle_audit").select("id,action,business_id,actor_id,created_at,details").or("action.like.website_addon_%,action.eq.plan_website_limit_changed").order("created_at",{ascending:false}).limit(100);
+   if(error)throw error;return res.json({events:data||[]});
+  }catch(e){return fail(res,e);}
+ });
  app.post("/api/admin/website-operations/:siteId",authenticate,async(req:any,res:any)=>{
   res.setHeader("Cache-Control","private, no-store");
   if(!enabled())return res.status(503).json({error:"Website lifecycle is disabled"});

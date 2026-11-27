@@ -1,3 +1,4 @@
+import { validateWebsiteRedirects } from "../src/lib/websiteRedirects.js";
 import { registerWebsiteBackupRoutes } from "./websiteBackupRoutes.js";
 import { registerWebsiteOperationsRoutes } from "./websiteOperationsRoutes.js";
 import { registerWebsiteReleaseRoutes } from "./websiteReleaseRoutes.js";
@@ -46,14 +47,14 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
         plans=await db.from("plans").select("slug,project_limit").eq("slug",business.plan).maybeSingle();
       }
       if(plans.error)throw plans.error;
-      const base="id,business_id,name,slug,status,is_primary,custom_domain,ssl_status,updated_at,seo";
+      const base="id,business_id,name,slug,status,is_primary,custom_domain,ssl_status,updated_at,seo,theme";
       let records=await db.from("websites").select(base+",archived_at").eq("business_id",businessId).eq("is_internal_pilot",false).order("updated_at",{ascending:false}).limit(1001);
       if(records.error?.code==="42703"||records.error?.code==="PGRST204"){
         schemaReady=false;
         records=await db.from("websites").select(base).eq("business_id",businessId).eq("is_internal_pilot",false).order("updated_at",{ascending:false}).limit(1001);
       }
       if(records.error)throw records.error;
-      const sites=(records.data||[]).map((s:any)=>({...s,seo:{title:typeof s.seo?.title==="string"?s.seo.title:""},archived_at:s.archived_at||null}));
+      const sites=(records.data||[]).map((s:any)=>{const {theme,seo,...rest}=s;const color=(v:unknown,fallback:string)=>typeof v==="string"&&/^#[0-9a-f]{6}$/i.test(v)?v:fallback;return {...rest,seo:{title:typeof seo?.title==="string"?seo.title:""},preview:{primary:color(theme?.primaryColor,"#4f46e5"),secondary:color(theme?.secondaryColor,"#0f172a"),title:typeof seo?.title==="string"?seo.title.slice(0,100):s.name||"Website",description:typeof seo?.description==="string"?seo.description.slice(0,140):""},archived_at:s.archived_at||null};});
       // Count allocations independently of the paginated portfolio. Include
       // reserved/internal rows, matching the database quota trigger.
       let countQuery=db.from("websites").select("id",{count:"exact",head:true}).eq("business_id",businessId);
@@ -70,6 +71,30 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
       const capacity=websiteCapacity({websiteLimit:effectiveLimit,websitesUsed:used,projectLimit:plans.data?.project_limit??null,pagesPerWebsite:pagePlan.maxPages,locationPagesPerWebsite:pagePlan.maxLocationPages});
       return res.json({businessId,sites,capacity,lifecycleEnabled:schemaReady&&enabled()&&business.status==="active"&&business.subscription_status==="active"});
     }catch(error){return report(res,error);}
+  });
+  app.get("/api/account/websites/:siteId/redirects",authenticate,async(req:any,res:any)=>{
+    res.setHeader("Cache-Control","private, no-store");
+    if(!enabled())return res.json({enabled:false});
+    const id=z.string().uuid().safeParse(req.params.siteId);if(!id.success)return res.status(400).json({error:"Invalid website ID"});
+    try{const profile=await actor(req,res);if(!profile)return;
+      const {data,error}=await db.from("websites").select("id,business_id,status,seo,updated_at").eq("id",id.data).eq("business_id",profile.business_id).eq("is_primary",false).eq("is_internal_pilot",false).is("archived_at",null).maybeSingle();
+      if(error)throw error;if(!data)return res.status(404).json({error:"Secondary website not found"});
+      return res.json({enabled:true,siteId:data.id,businessId:data.business_id,editable:data.status==="draft",updatedAt:data.updated_at,rules:validateWebsiteRedirects(data.seo?.siteRedirects)?data.seo.siteRedirects:[]});
+    }catch(e){return report(res,e);}
+  });
+  app.put("/api/account/websites/:siteId/redirects",authenticate,async(req:any,res:any)=>{
+    res.setHeader("Cache-Control","private, no-store");
+    if(!enabled())return res.status(503).json({error:"Redirects disabled"});
+    const id=z.string().uuid().safeParse(req.params.siteId);const input=z.object({rules:z.unknown(),updatedAt:z.string().datetime({offset:true})}).strict().safeParse(req.body);
+    if(!id.success||!input.success||!validateWebsiteRedirects(input.data.rules))return res.status(400).json({error:"Use unique internal paths and avoid redirect chains or loops."});
+    try{const profile=await actor(req,res);if(!profile)return;
+      const {data:site,error}=await db.from("websites").select("id,business_id,seo,updated_at").eq("id",id.data).eq("business_id",profile.business_id).eq("is_primary",false).eq("is_internal_pilot",false).eq("status","draft").is("archived_at",null).maybeSingle();
+      if(error)throw error;if(!site)return res.status(404).json({error:"Secondary draft not found"});
+      if(site.updated_at!==input.data.updatedAt)return res.status(409).json({error:"Website changed. Refresh first."});
+      const {data:updated,error:ue}=await db.from("websites").update({seo:{...(site.seo||{}),siteRedirects:input.data.rules},updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("updated_at",site.updated_at).eq("status","draft").select("id,business_id,updated_at").maybeSingle();
+      if(ue)throw ue;if(!updated)return res.status(409).json({error:"Website changed. Refresh first."});
+      return res.json({enabled:true,siteId:updated.id,businessId:updated.business_id,editable:true,updatedAt:updated.updated_at,rules:input.data.rules});
+    }catch(e){return report(res,e);}
   });
   app.post("/api/account/websites/:siteId/asset-upload",authenticate,async(req:any,res:any)=>{
     res.setHeader("Cache-Control","private, no-store");
