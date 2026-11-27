@@ -119,6 +119,8 @@ const WebsiteEditor = lazy(() =>
     default: m.WebsiteEditor,
   })),
 );
+const WebsitePortfolio = lazy(() => import("./components/WebsitePortfolio"));
+const WebsitePortfolioEditor = lazy(() => import("./components/WebsitePortfolioEditor"));
 const PoliciesCMS = lazy(() =>
   import("./components/PoliciesCMS").then((m) => ({ default: m.PoliciesCMS })),
 );
@@ -966,6 +968,8 @@ export default function App() {
                             />
 
                             {/* Business Admin Only Routes */}
+                            <Route path="websites" element={<ProtectedRoute allowedRoles={["business_admin"]}><WebsitePortfolio /></ProtectedRoute>} />
+                            <Route path="websites/:siteId" element={<ProtectedRoute allowedRoles={["business_admin"]}><FeatureGate featureId="ai_synthesis"><WebsitePortfolioEditor /></FeatureGate></ProtectedRoute>} />
                             <Route
                               path="website"
                               element={
