@@ -20,8 +20,12 @@ export async function handleWebsiteAddonWebhook(db:any,getStripe:()=>Promise<any
  const subEvent=type.startsWith("customer.subscription.");
  const invoice=type==="invoice.paid"||type==="invoice.payment_failed";
  if(!checkout&&!subEvent&&!invoice)return false;
- const metadata=invoice?(obj.parent?.subscription_details?.metadata||obj.subscription_details?.metadata):obj.metadata;
+ let metadata=invoice?(obj.parent?.subscription_details?.metadata||obj.subscription_details?.metadata):obj.metadata;
  const subscriptionId=checkout?ref(obj.subscription):subEvent?ref(obj):ref(obj.subscription||obj.parent?.subscription_details?.subscription);
+ if(metadata?.type!==marker&&invoice&&subscriptionId&&process.env.MULTI_SITE_DRAFT_LIFECYCLE==="true"){
+  const known=checked(await db.from("website_addon_orders").select(fields).eq("stripe_subscription_id",subscriptionId).maybeSingle());
+  if(known)metadata={type:marker,orderId:known.id,businessId:known.business_id};
+ }
  if(metadata?.type!==marker)return false;
  if(!id.safeParse(metadata.orderId).success)throw Error("Invalid website add-on metadata");
  const order=checked(await db.from("website_addon_orders").select(fields).eq("id",metadata.orderId).maybeSingle());

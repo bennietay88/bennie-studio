@@ -383,6 +383,7 @@ export function WebsiteRenderer({
   const draftPreview = !websiteIdOverride && (searchParams.get("draft") === "1" || searchParams.get("draft") === "true");
   const isThumbnail = searchParams.get("thumbnail") === "1";
   const requestedWebsiteId = websiteIdOverride || searchParams.get("website");
+  const accountThumbnail=Boolean(isThumbnail&&draftPreview&&requestedWebsiteId&&businessId);
   const { isFeatureEnabled } = useFeatures();
   const [website, setWebsite] = useState<Website | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
@@ -487,10 +488,10 @@ export function WebsiteRenderer({
 
   useEffect(() => {
     scrollPreviewToTop("auto");
-    if (!website?.theme?.previewPurpose) {
+    if (!isThumbnail && !draftPreview && !isEditingPreview && !website?.theme?.previewPurpose) {
       trackPinterestPageVisit(window.location.pathname + window.location.search);
     }
-  }, [activePageSlug, selectedPost?.id, website?.theme?.previewPurpose]);
+  }, [activePageSlug, selectedPost?.id, website?.theme?.previewPurpose,isThumbnail,draftPreview,isEditingPreview]);
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -769,13 +770,20 @@ export function WebsiteRenderer({
     const fetchWebsite = async () => {
       if (!businessId) return;
       try {
+        let thumbnailData:any=null;
+        if(accountThumbnail){
+          const {portfolioRequest}=await import("../lib/websitePortfolioApi");
+          const result=await portfolioRequest<{siteId:string;businessId:string;website:any}>("/api/account/websites/"+encodeURIComponent(requestedWebsiteId!)+"/preview");
+          if(result.siteId!==requestedWebsiteId||result.businessId!==businessId||result.website?.id!==requestedWebsiteId||result.website.business_id!==businessId)throw Error("Preview scope changed.");
+          thumbnailData=result.website;
+        }
         let query = supabase
           .from("websites")
           .select("*")
           .eq("business_id", businessId);
 
         if (requestedWebsiteId) query = query.eq("id", requestedWebsiteId);
-        const { data: rows, error } = await query.order("is_primary", { ascending: false }).limit(2);
+        const { data: rows, error } = thumbnailData?{data:[thumbnailData],error:null}:await query.order("is_primary", { ascending: false }).limit(2);
         if (error) throw error;
         let selected = requestedWebsiteId ? rows?.[0] : choosePrimaryWebsite(rows || []);
         if(websiteIdOverride&&(!selected||selected.is_primary===false)){
@@ -836,6 +844,7 @@ export function WebsiteRenderer({
   }, [activePageSlug, website]);
 
   useEffect(() => {
+    if(accountThumbnail)return;
     const hasBlogList = website?.pages.some((p) =>
       p.sections.some((s) => s.type === "blog_list"),
     );
@@ -901,10 +910,10 @@ export function WebsiteRenderer({
         if (channel) supabase.removeChannel(channel);
       };
     }
-  }, [activePageSlug, businessId, enableRealtime, website]);
+  }, [activePageSlug, businessId, enableRealtime, website,accountThumbnail]);
 
   useEffect(() => {
-    if (businessId) {
+    if (businessId&&!accountThumbnail) {
       const fetchPolicies = async () => {
         const { data } = await supabase
           .from("settings")
@@ -920,11 +929,11 @@ export function WebsiteRenderer({
       };
       fetchPolicies();
     }
-  }, [businessId]);
+  }, [businessId,accountThumbnail]);
 
   useEffect(() => {
     if (businessId) {
-      if (businessId === "preview") {
+      if (businessId === "preview"||accountThumbnail) {
         const previewName =
           initialData?.seo?.title?.split("|")[0]?.trim() ||
           website?.seo?.title?.split("|")[0]?.trim() ||
@@ -968,9 +977,10 @@ export function WebsiteRenderer({
     if (refCode && businessId) {
       localStorage.setItem(`ref_${businessId}`, refCode);
     }
-  }, [businessId, location.search, initialData, website?.seo?.title, website?.seo?.businessType, website?.seo?.brandVoice, website?.seo?.placename]);
+  }, [businessId, location.search, initialData, website?.seo?.title, website?.seo?.businessType, website?.seo?.brandVoice, website?.seo?.placename,accountThumbnail]);
 
   useEffect(() => {
+    if(accountThumbnail)return;
     const fetchComplianceSettings = async () => {
       try {
         const { data } = await supabase
@@ -984,10 +994,10 @@ export function WebsiteRenderer({
       }
     };
     fetchComplianceSettings();
-  }, []);
+  }, [accountThumbnail]);
 
   useEffect(() => {
-    if (businessId && businessId !== "preview") {
+    if (businessId && businessId !== "preview"&&!accountThumbnail) {
       const fetchProducts = async () => {
         const { data } = await supabase
           .from("products")
@@ -1053,7 +1063,7 @@ export function WebsiteRenderer({
         if (channel) supabase.removeChannel(channel);
       };
     }
-  }, [businessId, enableRealtime]);
+  }, [businessId, enableRealtime,accountThumbnail]);
 
   const handleCheckout = async (product: any) => {
     if (!product || !businessId) return;
@@ -1457,10 +1467,10 @@ export function WebsiteRenderer({
   const secureFormsEnabled = complianceSettings?.secureFormsEnabled !== false;
   const marketingConsentEnabled = complianceSettings?.marketingConsentEnabled !== false;
   const canLoadAnalytics =
-    complianceSettings?.analyticsScriptsEnabled === true &&
+    !accountThumbnail && !draftPreview && complianceSettings?.analyticsScriptsEnabled === true &&
     (!complianceSettings?.analyticsRequiresConsent || !!cookieConsent?.analytics);
   const canLoadMarketing =
-    complianceSettings?.marketingScriptsEnabled === true &&
+    !accountThumbnail && !draftPreview && complianceSettings?.marketingScriptsEnabled === true &&
     (!complianceSettings?.marketingRequiresConsent || !!cookieConsent?.marketing);
   const generatedPolicies = complianceSettings?.generatedPages || {};
   const legalPolicyLinks = [
@@ -1776,7 +1786,7 @@ export function WebsiteRenderer({
           <title>{displayTitle}</title>
           <meta name="description" content={displayDescription} />
           <meta name="keywords" content={displayKeywords.join(", ")} />
-          {website.theme?.previewPurpose ? <meta name="robots" content="noindex,nofollow" /> : null}
+          {(website.theme?.previewPurpose||draftPreview||accountThumbnail) ? <meta name="robots" content="noindex,nofollow" /> : null}
 
           {isFeatureEnabled("advanced_seo") && (
             <>

@@ -272,6 +272,9 @@ begin
     end if;
   end if;
   if new.status='published' then
+    if exists(select 1 from public.website_domain_operation_locks where website_id=new.id) then
+      raise exception 'DOMAIN_OPERATION_IN_PROGRESS' using errcode='23514';
+    end if;
     if new.archived_at is not null or new.is_internal_pilot is distinct from false
       or new.submitted_revision is distinct from new.release_revision
       or new.internal_approved_revision is distinct from new.release_revision
@@ -308,7 +311,9 @@ create table if not exists public.website_content_backups(
 create index if not exists website_content_backups_scope on public.website_content_backups(business_id,website_id,created_at desc);
 alter table public.website_content_backups enable row level security;
 revoke all on public.website_content_backups from public,anon,authenticated;
-grant select,insert,delete on public.website_content_backups to service_role;
+grant select,insert,update,delete on public.website_content_backups to service_role;
+alter table public.website_content_backups add column if not exists media_status text not null default 'content_only' check(media_status in ('content_only','pending','complete','failed'));
+alter table public.website_content_backups add column if not exists media_manifest jsonb not null default '[]'::jsonb;
 create table if not exists public.website_lifecycle_audit(
  id uuid primary key default gen_random_uuid(), business_id uuid, website_id uuid,
  actor_id uuid, action text not null, details jsonb not null default '{}'::jsonb,
@@ -453,4 +458,8 @@ create table if not exists public.website_domain_operation_locks(
 alter table public.website_domain_operation_locks enable row level security;
 revoke all on public.website_domain_operation_locks from public,anon,authenticated;
 grant select,insert,delete on public.website_domain_operation_locks to service_role;
+-- Private backup assets must never be accessible through the legacy public bucket policy.
+drop policy if exists multi_site_private_backup_assets on storage.objects;
+create policy multi_site_private_backup_assets on storage.objects as restrictive for all to anon,authenticated
+using(bucket_id<>'website-backups') with check(bucket_id<>'website-backups');
 commit;

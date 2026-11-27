@@ -92,7 +92,7 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
     const host=input.data.domain===null?null:validSecondaryDomain(input.data.domain);
     if(input.data.domain!==null&&(!host||!input.data.permission))return res.status(400).json({error:"Enter a permitted domain and confirm ownership."});
     try{
-      const site=await load(req,res);if(!site)return;
+      let site=await load(req,res);if(!site)return;
       if(site.status!=="draft"||site.custom_domain_suspended||site.updated_at!==input.data.updatedAt)return res.status(409).json({error:"Unpublish or refresh this website before changing its domain."});
       if(host===site.custom_domain)return res.json(response(site));
       let unlock:(()=>Promise<void>)|undefined;
@@ -101,7 +101,10 @@ export function registerWebsiteDomainRoutes(app:any,db:any,authenticate:any,getP
           unlock=await lockDomain(site);
           if(!await reload(site))return res.status(409).json({error:"Website changed. Refresh and retry."});
           if(!isVercelDomainsConfigured())return res.status(503).json({error:"Hosting provider is not configured; domain reservation retained."});
-          // An old reservation must remain present until deletion succeeds.
+          const {data:reset,error:resetError}=await db.from("websites").update({custom_domain_status:"dns_pending",custom_domain_verified_at:null,ssl_status:"pending",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("updated_at",site.updated_at).eq("status","draft").is("archived_at",null).select(select).maybeSingle();
+          if(resetError)throw resetError;if(!reset)return res.status(409).json({error:"Website changed. Refresh first."});
+          site=reset;
+          // Retain reservation and clear verified state before provider deletion.
           await removeVercelProjectDomain(site.custom_domain).catch((e:any)=>{if(Number(e?.status)!==404)throw e;});
         }
       const {data,error}=await db.from("websites").update({custom_domain:host,domain_challenge:host?"bennie-"+randomBytes(32).toString("hex"):null,custom_domain_permission_confirmed:Boolean(host),custom_domain_status:host?"dns_pending":"not_connected",custom_domain_verified_at:null,ssl_status:host?"pending":"not_connected",updated_at:new Date().toISOString()}).eq("id",site.id).eq("business_id",site.business_id).eq("is_primary",false).eq("status","draft").eq("updated_at",site.updated_at).is("archived_at",null).select(select).maybeSingle();

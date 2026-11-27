@@ -72,6 +72,15 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
       return res.json({businessId,sites,capacity,lifecycleEnabled:schemaReady&&enabled()&&business.status==="active"&&business.subscription_status==="active"});
     }catch(error){return report(res,error);}
   });
+  app.get("/api/account/websites/:siteId/preview",authenticate,async(req:any,res:any)=>{
+    res.setHeader("Cache-Control","private, no-store");
+    const id=z.string().uuid().safeParse(req.params.siteId);if(!id.success)return res.status(400).json({error:"Invalid website ID"});
+    try{const profile=await actor(req,res);if(!profile)return;
+      const {data,error}=await db.from("websites").select("id,business_id,theme,pages,seo,status,updated_at,is_primary,is_internal_pilot").eq("id",id.data).eq("business_id",profile.business_id).eq("is_internal_pilot",false).maybeSingle();
+      if(error)throw error;if(!data)return res.status(404).json({error:"Website not found"});
+      return res.json({siteId:data.id,businessId:data.business_id,website:data});
+    }catch(e){return report(res,e);}
+  });
   app.get("/api/account/websites/:siteId/redirects",authenticate,async(req:any,res:any)=>{
     res.setHeader("Cache-Control","private, no-store");
     if(!enabled())return res.json({enabled:false});
