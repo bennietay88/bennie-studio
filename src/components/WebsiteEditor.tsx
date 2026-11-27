@@ -1,3 +1,4 @@
+import { choosePrimaryWebsite } from "../lib/primaryWebsite";
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -1208,9 +1209,9 @@ export function WebsiteEditor({
                 .from("websites")
                 .select("*")
                 .eq("business_id", id)
-                .order("updated_at", { ascending: false })
-                .limit(1)
-                .maybeSingle());
+                .order("is_primary", { ascending: false })
+                .limit(2)
+                .then(({data,error}) => ({data:error ? null : choosePrimaryWebsite(data || []),error})));
 
           // If recently generated but not found, retry (Supabase replication lag or cold starts)
           if (!res.data && !res.error && !isTemplateMode && attempt < 10) {
