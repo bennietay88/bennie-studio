@@ -1,3 +1,4 @@
+import WebsiteOperationsAdmin from "./WebsiteOperationsAdmin";
 import { WebsiteReleaseQueue } from "./WebsiteReleasePanel";
 import WebsiteAllowanceAdmin from "./WebsiteAllowanceAdmin";
 /**
@@ -1453,6 +1454,7 @@ export default function SuperAdminDashboard() {
 
       {activeTab === "daily_operations" && <DailyOperations />}
       {activeTab === "operations_control" && <OperationsControlCenter />}
+      {activeTab === "website_operations" && <WebsiteOperationsAdmin key={profile?.uid || "admin"} />}
 
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
@@ -2326,7 +2328,7 @@ export default function SuperAdminDashboard() {
           {activeTab === "update_requests" && <MonthlyUpdateQueue />}
 
           {/* Catch-all for tabs that might not have specialized rendering yet or are in development */}
-          {!['overview', 'revenue_command', 'sales_home', 'sales_automation', 'growth_operations', 'daily_operations', 'operations_control', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'studio_showcases', 'platform_site_cms', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
+          {!['overview', 'revenue_command', 'sales_home', 'sales_automation', 'growth_operations', 'daily_operations', 'operations_control', 'website_operations', 'website_reviews', 'inbound_leads', 'prospect_explorer', 'neural_auditor', 'outreach_lab', 'proposals_deals', 'projects', 'client_onboarding', 'seo_management', 'local_seo', 'blog', 'studio_showcases', 'platform_site_cms', 'funnels', 'businesses', 'users', 'affiliates', 'growth_os_config', 'revenue', 'templates', 'plans', 'status', 'ecosystem_architect', 'traffic', 'settings', 'support', 'update_requests', 'policies', 'admin'].includes(activeTab) && (
             <div className="h-full flex items-center justify-center p-12">
                <Card className="p-24 flex flex-col items-center justify-center text-center rounded-[3rem] border-slate-100 bg-slate-50/50 max-w-2xl">
                   <div className="h-20 w-20 rounded-[2rem] bg-white shadow-xl shadow-slate-200 flex items-center justify-center text-indigo-600 mb-6">

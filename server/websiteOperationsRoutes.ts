@@ -16,7 +16,7 @@ export function registerWebsiteOperationsRoutes(app:any,db:any,authenticate:any,
    // Content-only export; excludes account, billing, CRM and hosting credentials.
    const seo=data.seo||{};
    const {title,description,keywords,canonicalUrl,ogImage,favicon}=seo;
-   return res.json({format:"bennie-website-content-v1",exportedAt:new Date().toISOString(),website:{id:data.id,name:data.name,theme:data.theme,pages:data.pages,seo:{title,description,keywords,canonicalUrl,ogImage,favicon},updatedAt:data.updated_at}});
+   return res.json({format:"bennie-website-content-v1",businessId:data.business_id,exportedAt:new Date().toISOString(),website:{id:data.id,name:data.name,theme:data.theme,pages:data.pages,seo:{title,description,keywords,canonicalUrl,ogImage,favicon},updatedAt:data.updated_at}});
   }catch(e){return fail(res,e);}
  });
  app.get("/api/admin/website-operations",authenticate,async(req:any,res:any)=>{

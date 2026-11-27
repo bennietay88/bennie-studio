@@ -19,7 +19,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
   const enabled = () => process.env.MULTI_SITE_DRAFT_LIFECYCLE === "true";
   async function actor(req:any,res:any) {
     const profile = await getProfile(req.user.id);
-    if (profile.role !== "business_admin" || !profile.business_id || profile.status !== "active") {
+    if (profile?.role !== "business_admin" || !profile.business_id || profile.status !== "active") {
       res.status(403).json({error:"Business administrator access required"}); return null;
     }
     return profile;
@@ -109,7 +109,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
     res.setHeader("Cache-Control","private, no-store");
     try{
       const profile=await getProfile(req.user.id);
-      if(profile.role!=="super_admin")return res.status(403).json({error:"Super administrator access required"});
+      if(profile?.role!=="super_admin"||profile.status!=="active")return res.status(403).json({error:"Super administrator access required"});
       const {data,error}=await db.from("plans").select("slug,name,project_limit,website_limit,is_active").order("sort_order");
       if(error)throw error;
       return res.json({plans:data||[]});
@@ -121,7 +121,7 @@ export function registerWebsitePortfolioRoutes(app:any, db:any, authenticate:any
     if(!body.success||typeof req.params.slug!=="string"||!/^[-a-z0-9_]{1,80}$/.test(req.params.slug))return res.status(400).json({error:"Invalid website allowance"});
     try{
       const profile=await getProfile(req.user.id);
-      if(profile.role!=="super_admin")return res.status(403).json({error:"Super administrator access required"});
+      if(profile?.role!=="super_admin"||profile.status!=="active")return res.status(403).json({error:"Super administrator access required"});
       const {data,error}=await db.from("plans").update({website_limit:body.data.websiteLimit}).eq("slug",req.params.slug).select("slug,website_limit,project_limit").maybeSingle();
       if(error)throw error;
       if(!data)return res.status(404).json({error:"Plan not found"});
