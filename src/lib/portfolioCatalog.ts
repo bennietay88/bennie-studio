@@ -35,9 +35,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": true,
     "order": 1,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/dental-clinic-cover.webp",
+    "desktopImage": "/images/case-studies/captures/dental-clinic-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/dental-clinic-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Treatments",
@@ -61,9 +61,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": true,
     "order": 2,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/renovation-contractor-cover.webp",
+    "desktopImage": "/images/case-studies/captures/renovation-contractor-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/renovation-contractor-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Services",
@@ -87,9 +87,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 3,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/professional-advisory-cover.webp",
+    "desktopImage": "/images/case-studies/captures/professional-advisory-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/professional-advisory-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Expertise",
@@ -113,9 +113,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 4,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/tuition-centre-cover.webp",
+    "desktopImage": "/images/case-studies/captures/tuition-centre-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/tuition-centre-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Programmes",
@@ -139,9 +139,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 5,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/beauty-wellness-cover.webp",
+    "desktopImage": "/images/case-studies/captures/beauty-wellness-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/beauty-wellness-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Treatment menu",
@@ -165,9 +165,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 6,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/accounting-firm-cover.webp",
+    "desktopImage": "/images/case-studies/captures/accounting-firm-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/accounting-firm-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Client fit",
@@ -191,9 +191,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 7,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/physiotherapy-clinic-cover.webp",
+    "desktopImage": "/images/case-studies/captures/physiotherapy-clinic-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/physiotherapy-clinic-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Conditions",
@@ -217,9 +217,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 8,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/real-estate-agency-cover.webp",
+    "desktopImage": "/images/case-studies/captures/real-estate-agency-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/real-estate-agency-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Listings",
@@ -242,9 +242,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 9,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/cleaning-service-cover.webp",
+    "desktopImage": "/images/case-studies/captures/cleaning-service-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/cleaning-service-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Packages",
@@ -268,9 +268,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 10,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/hvac-specialist-cover.webp",
+    "desktopImage": "/images/case-studies/captures/hvac-specialist-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/hvac-specialist-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Service types",
@@ -293,9 +293,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 11,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/landscape-design-cover.webp",
+    "desktopImage": "/images/case-studies/captures/landscape-design-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/landscape-design-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Portfolio",
@@ -318,9 +318,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 12,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/business-consulting-cover.webp",
+    "desktopImage": "/images/case-studies/captures/business-consulting-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/business-consulting-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Offer",
@@ -344,9 +344,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 13,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/interior-design-cover.webp",
+    "desktopImage": "/images/case-studies/captures/interior-design-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/interior-design-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Projects",
@@ -369,9 +369,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 14,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/auto-detailing-cover.webp",
+    "desktopImage": "/images/case-studies/captures/auto-detailing-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/auto-detailing-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Services",
@@ -394,9 +394,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 15,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/fitness-coaching-cover.webp",
+    "desktopImage": "/images/case-studies/captures/fitness-coaching-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/fitness-coaching-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Programmes",
@@ -419,9 +419,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 16,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/photography-studio-cover.webp",
+    "desktopImage": "/images/case-studies/captures/photography-studio-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/photography-studio-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Gallery",
@@ -444,9 +444,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 17,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/pet-wellness-cover.webp",
+    "desktopImage": "/images/case-studies/captures/pet-wellness-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/pet-wellness-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Care services",
@@ -469,9 +469,9 @@ export const DEFAULT_PORTFOLIO_ITEMS: PortfolioItem[] = [
     "published": true,
     "featured": false,
     "order": 18,
-    "coverImage": "",
-    "desktopImage": "",
-    "mobileImage": "",
+    "coverImage": "/images/case-studies/captures/event-planning-cover.webp",
+    "desktopImage": "/images/case-studies/captures/event-planning-desktop.jpg",
+    "mobileImage": "/images/case-studies/captures/event-planning-mobile.jpg",
     "imageAlt": "",
     "sections": [
       "Events",
@@ -499,7 +499,16 @@ export function resolvePortfolioCatalog(saved: unknown): PortfolioItem[] {
     && ["coverImage","desktopImage","mobileImage"].every((key) =>
       typeof item[key] === "string" && isSafePortfolioMediaUrl(item[key])
     )
-  ).sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+  ).map(item => {
+    const bundled = DEFAULT_PORTFOLIO_ITEMS.find(entry => entry.slug === item.slug);
+    if (!bundled) return item;
+    return {
+      ...item,
+      coverImage: item.coverImage || item.desktopImage || bundled.coverImage,
+      desktopImage: item.desktopImage || bundled.desktopImage,
+      mobileImage: item.mobileImage || bundled.mobileImage,
+    };
+  }).sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
 }
 
 export function publicPortfolioCatalog(saved: unknown): PortfolioItem[] {
