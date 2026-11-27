@@ -1,3 +1,4 @@
+import { WebsiteReleaseQueue } from "./WebsiteReleasePanel";
 import WebsiteAllowanceAdmin from "./WebsiteAllowanceAdmin";
 /**
  * @license
@@ -1455,7 +1456,7 @@ export default function SuperAdminDashboard() {
 
       {activeTab === "inbound_leads" && <AdminLeadInbox />}
       {activeTab === "prospect_explorer" && <ProspectExplorer />}
-      {activeTab === "website_reviews" && <WebsiteReviewAuditor />}
+      {activeTab === "website_reviews" && <><WebsiteReleaseQueue /><WebsiteReviewAuditor /></>}
       {activeTab === "outreach_lab" && <OutreachLab />}
       {activeTab === "proposals_deals" && <ProposalsDeals />}
       {activeTab === "projects" && <Projects />}
