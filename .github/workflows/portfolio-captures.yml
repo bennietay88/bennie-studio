@@ -1,7 +1,7 @@
 name: Portfolio screenshot capture
 on:
   push:
-    branches: [portfolio/image-refresh]
+    branches: [portfolio/image-refresh, portfolio/distinct-designs]
     paths:
       - 'scripts/capture-portfolio.mjs'
       - '.github/workflows/portfolio-captures.yml'
@@ -48,7 +48,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   publish-branch:
-    if: github.ref == 'refs/heads/portfolio/image-refresh'
+    if: github.ref == 'refs/heads/portfolio/image-refresh' || github.ref == 'refs/heads/portfolio/distinct-designs'
     needs: capture
     runs-on: ubuntu-latest
     permissions:
@@ -56,7 +56,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: portfolio/image-refresh
+          ref: ${{ github.ref_name }}
       - uses: actions/download-artifact@v4
         with:
           name: portfolio-captures
@@ -72,4 +72,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "Capture all 18 interactive case study designs"
-          git push origin HEAD:refs/heads/portfolio/image-refresh
+          git push origin HEAD:refs/heads/${{ github.ref_name }}
