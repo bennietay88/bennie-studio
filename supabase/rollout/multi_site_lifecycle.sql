@@ -61,6 +61,9 @@ begin
     raise exception 'SECONDARY_SITE_PUBLICATION_NOT_ENABLED' using errcode='23514';
   end if;
   if tg_op='UPDATE' and coalesce(auth.role(),'') in ('anon','authenticated') then
+    if old.archived_at is not null then
+      raise exception 'WEBSITE_ARCHIVED' using errcode='42501';
+    end if;
     if new.archived_at is distinct from old.archived_at then
       raise exception 'USE_WEBSITE_LIFECYCLE_API' using errcode='42501';
     end if;
