@@ -9,7 +9,7 @@ test("portfolio and site editor are protected routes with a tenant-scoped lookup
  assert.match(app,/path="websites" element=\{<ProtectedRoute/);
  assert.match(app,/path="websites\/:siteId" element=\{<ProtectedRoute/);
  assert.match(portfolio,/getWebsitePortfolio\(\)/);
- assert.match(workspace,/\.eq\("business_id",businessId\)\.eq\("id",siteId\)/);
+ assert.match(workspace,/selectPortfolioSite\(portfolio\.sites,businessId,siteId\)/);
  assert.match(workspace,/key=\{scope\} websiteIdOverride=\{siteId\}/);
 });
 test("exact-site editor never falls through to the newest website and guards unsupported shared operations",()=>{
