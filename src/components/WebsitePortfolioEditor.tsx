@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { supabase } from "../lib/supabase";
+import { getWebsitePortfolio } from "../lib/websitePortfolioApi";
+import WebsiteSiteOverview from "./WebsiteSiteOverview";
 import { WebsiteEditor } from "./WebsiteEditor";
 import { selectPortfolioSite, siteLabel, type PortfolioSite } from "../lib/websitePortfolio";
 
@@ -19,8 +20,9 @@ export default function WebsitePortfolioEditor() {
     }
     void (async()=>{
       try {
-        const {data,error}=await supabase.from("websites").select("id,business_id,slug,status,updated_at,seo").eq("business_id",businessId).eq("id",siteId).maybeSingle();
-        if(active) setResult({scope,site:error||!data?null:selectPortfolioSite([data as PortfolioSite],businessId,siteId)});
+        const portfolio=await getWebsitePortfolio();
+        const site=portfolio.businessId===businessId?selectPortfolioSite(portfolio.sites,businessId,siteId):null;
+        if(active) setResult({scope,site:site&&!site.archived_at?site:null});
       } catch { if(active) setResult({scope,site:null}); }
     })();
     return ()=>{active=false;};
@@ -29,6 +31,6 @@ export default function WebsitePortfolioEditor() {
   return <div className="space-y-4">
     <Link to="/dashboard/websites" className="inline-block text-sm font-semibold text-indigo-600" onClick={e=>{if(current?.site && !window.confirm("Return to My Websites? Unsaved editor changes will be lost."))e.preventDefault();}}>← My Websites</Link>
     {!current ? <p role="status">Loading selected website…</p> : !current.site ? <p role="alert">This website is not available in your workspace.</p> :
-      <><h1 className="text-xl font-semibold">{siteLabel(current.site)}</h1><WebsiteEditor key={scope} websiteIdOverride={siteId}/></>}
+      <><h1 className="text-xl font-semibold">{siteLabel(current.site)}</h1><WebsiteSiteOverview key={scope} siteId={siteId} businessId={businessId}/><WebsiteEditor key={scope} websiteIdOverride={siteId}/></>}
   </div>;
 }
