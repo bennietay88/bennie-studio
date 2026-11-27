@@ -237,8 +237,10 @@ function TrafficTracker() {
 function ScrollToTop() {
   const { pathname } = useLocation();
 
-  React.useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  React.useLayoutEffect(() => {
+    // Route changes must not inherit the global smooth-scroll rule. Reset
+    // before paint rather than visibly scrolling through the destination.
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname]);
 
   return null;
@@ -446,13 +448,40 @@ function PublicRouteTransition({ children }: { children: React.ReactNode }) {
       pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`),
   );
 
+  const previous = React.useRef(pathname);
+  const shell = React.useRef<HTMLDivElement>(null);
+  React.useLayoutEffect(() => {
+    const changed = previous.current !== pathname;
+    previous.current = pathname;
+    if (!changed || !isPublicRoute || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const content = shell.current?.querySelector("main");
+    if (!content?.animate) return;
+    // Keep navigation and the sticky header stable; only the newly
+    // committed main content receives a short, non-blocking fade.
+    const animation = content.animate([{opacity:.96},{opacity:1}], {duration:150,easing:"ease-out"});
+    return () => animation.cancel();
+  }, [pathname, isPublicRoute]);
+  React.useEffect(() => {
+    if (!isPublicRoute) return;
+    const warmed = new Set<string>();
+    const warm = (event: Event) => {
+      const link = event.target instanceof Element ? event.target.closest("a[href]") as HTMLAnchorElement | null : null;
+      if (!link || link.origin !== window.location.origin || link.pathname === pathname) return;
+      const path = link.pathname;
+      const common = ["/services","/about","/resources","/contact","/templates","/pricing","/how-it-works","/case-studies","/website-audit","/generate-preview"];
+      const key = path === "/" ? "home" : common.includes(path) ? "marketing" : path.startsWith("/case-studies/showcase/")&&!path.includes("/preview") ? "case-study" : null;
+      if (!key || warmed.has(key)) return;
+      warmed.add(key);
+      const load = key === "home" ? import("./components/BrandLedLandingPage") : key === "marketing" ? import("./components/PublicMarketingPages") : import("./components/StudioCaseStudyDetail");
+      void load.catch(() => warmed.delete(key));
+    };
+    document.addEventListener("pointerover",warm,{passive:true});
+    document.addEventListener("focusin",warm);
+    document.addEventListener("pointerdown",warm,{passive:true});
+    return () => {document.removeEventListener("pointerover",warm);document.removeEventListener("focusin",warm);document.removeEventListener("pointerdown",warm);};
+  }, [isPublicRoute, pathname]);
   if (!isPublicRoute) return <>{children}</>;
-
-  return (
-    <div key={pathname} className="bt-public-route-transition">
-      {children}
-    </div>
-  );
+  return <div ref={shell} className="bt-public-route-transition">{children}</div>;
 }
 
 function RouteRobotsMeta() {

@@ -760,34 +760,8 @@
 }
 
 
-/* Public route transitions: fast enough to feel responsive, visible enough to feel intentional. */
-.bt-public-route-transition {
-  min-height: 100vh;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .bt-public-route-transition {
-    animation: bt-public-route-enter 240ms cubic-bezier(.16, 1, .3, 1) both;
-    will-change: opacity, transform;
-  }
-
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none !important;
-  }
-}
-
-@keyframes bt-public-route-enter {
-  from {
-    opacity: .82;
-    transform: translate3d(0, 6px, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
+/* Route shell remains stable; App animates only committed main content. */
+.bt-public-route-transition { min-height:100vh; }
 
 /* Premium typography and interaction guardrails shared across public and generated surfaces. */
 .brand-public h1 {

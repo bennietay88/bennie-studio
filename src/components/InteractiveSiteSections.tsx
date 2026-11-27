@@ -11,26 +11,41 @@ export function BeforeAfterComparison({ before, after, beforeLabel = "Before", a
   const control = useId();
   const scene = useRef<HTMLDivElement>(null);
   const dragging = useRef<number | null>(null);
-  const move = (event: React.PointerEvent<HTMLDivElement>) => {
+  const frame = useRef(0);
+  const pendingX = useRef(0);
+  const update = (clientX: number) => {
     const rect = scene.current?.getBoundingClientRect();
-    if (rect && rect.width > 0) setPosition(Math.round(Math.min(100, Math.max(0, (event.clientX - rect.left) / rect.width * 100))));
+    if (rect && rect.width > 0) setPosition(Math.min(100, Math.max(0, (clientX - rect.left) / rect.width * 100)));
   };
+  const move = (event: React.PointerEvent<HTMLDivElement>) => {
+    pendingX.current = event.clientX;
+    if (!frame.current) frame.current = requestAnimationFrame(() => {
+      frame.current = 0;
+      update(pendingX.current);
+    });
+  };
+  const stop = () => {
+    dragging.current = null;
+    if (frame.current) cancelAnimationFrame(frame.current);
+    frame.current = 0;
+  };
+  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current); }, []);
   return <figure className="bt-comparison">
-    <div ref={scene} className="bt-comparison-scene"
-      onPointerDown={event => { if (event.button !== 0) return; dragging.current = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); move(event); }}
+    <div ref={scene} className="bt-comparison-scene" style={{"--bt-comparison-position": position + "%"} as React.CSSProperties}
+      onPointerDown={event => { if (event.button !== 0 || dragging.current !== null) return; dragging.current = event.pointerId; event.currentTarget.setPointerCapture(event.pointerId); update(event.clientX); }}
       onPointerMove={event => { if (dragging.current === event.pointerId) move(event); }}
-      onPointerUp={event => { if (dragging.current === event.pointerId) { dragging.current = null; move(event); } }}
-      onPointerCancel={() => { dragging.current = null; }}
-      onLostPointerCapture={() => { dragging.current = null; }}>
+      onPointerUp={event => { if (dragging.current === event.pointerId) { stop(); update(event.clientX); } }}
+      onPointerCancel={event => { if (dragging.current === event.pointerId) stop(); }}
+      onLostPointerCapture={event => { if (dragging.current === event.pointerId) stop(); }}>
       <div className="bt-comparison-panel">{after}</div>
-      <div className="bt-comparison-panel" style={{clipPath: "inset(0 " + (100-position) + "% 0 0)"}}>{before}</div>
+      <div className="bt-comparison-panel bt-comparison-before">{before}</div>
       <span className="bt-comparison-tag bt-comparison-left">{beforeLabel}</span>
       <span className="bt-comparison-tag bt-comparison-right">{afterLabel}</span>
-      <div aria-hidden="true" className="bt-comparison-divider" style={{left: position + "%"}}><span><ArrowLeftRight size={19}/></span></div>
+      <div aria-hidden="true" className="bt-comparison-divider"/><div aria-hidden="true" className="bt-comparison-handle"><ArrowLeftRight size={19}/></div>
     </div>
     <div className="bt-comparison-controls">
       <label htmlFor={control}>Compare {beforeLabel.toLowerCase()} and {afterLabel.toLowerCase()}</label>
-      <input id={control} type="range" min={0} max={100} value={position} aria-valuetext={position + "% " + beforeLabel + ", " + (100-position) + "% " + afterLabel} onChange={event => setPosition(Number(event.target.value))}/>
+      <input id={control} type="range" min={0} max={100} value={Math.round(position)} aria-valuetext={Math.round(position) + "% " + beforeLabel + ", " + (100-Math.round(position)) + "% " + afterLabel} onChange={event => setPosition(Number(event.target.value))}/>
       <button type="button" onClick={() => setPosition(50)}>Reset</button>
     </div>
     {caption && <figcaption>{caption}</figcaption>}

@@ -31,7 +31,7 @@
 .brand-public .sfn-signature-advisory { background:linear-gradient(130deg,#27223c,#504c67); }
 .brand-public .sfn-signature-orbit { position:absolute; width:75%; aspect-ratio:1; border:1px solid #ffffff37; border-radius:50%; transform:translate(23%,-6%); box-shadow:0 0 0 55px #ffffff08,0 0 0 110px #ffffff06; }
 .brand-public .sfn-signature-backdrop { position:absolute; font-size:clamp(9rem,25vw,29rem); font-family:Georgia,serif; font-style:italic; font-weight:400; line-height:1; letter-spacing:-.16em; color:#ffffff0d; bottom:-.1em; left:-.1em; user-select:none; }
-.brand-public .sfn-signature-window { position:relative; z-index:2; width:min(100%,620px); transform:rotate(-3deg); background:#fcfbf6; padding:8px 8px 0; box-shadow:23px 32px 0 -8px #07111e45,0 28px 45px #0006; animation:sfn-stage-in .55s cubic-bezier(.2,.8,.2,1) both; }
+.brand-public .sfn-signature-window { position:relative; z-index:2; width:min(100%,620px); transform:rotate(-3deg); background:#fcfbf6; padding:8px 8px 0; box-shadow:23px 32px 0 -8px #07111e45,0 28px 45px #0006; animation:sfn-stage-in .18s ease-out both; }
 .brand-public .sfn-signature-care .sfn-signature-window { transform:rotate(2deg) translateY(-3px); }
 .brand-public .sfn-signature-advisory .sfn-signature-window { transform:rotate(-1deg) translateY(4px); }
 .brand-public .sfn-signature-browser { display:flex; align-items:center; justify-content:space-between; gap:.3rem; padding:.55rem .5rem .8rem; color:#475365; font-size:9px; font-weight:700; letter-spacing:.08em; }
@@ -53,7 +53,7 @@
 .brand-public .sfn-signature-controls button[aria-selected=true] { color:#101824; background:var(--sfn-spot); border-color:var(--sfn-spot); }
 .brand-public .sfn-signature-controls button:hover:not([aria-selected=true]) { background:#ffffff20; color:#fff; }
 .brand-public .sfn-signature button:focus-visible,.brand-public .sfn-signature a:focus-visible { outline:3px solid #f7c58b; outline-offset:3px; }
-@keyframes sfn-stage-in { from { opacity:.4; translate:0 16px; } to {opacity:1;translate:0 0;} }
+@keyframes sfn-stage-in { from { opacity:.94; translate:0 2px; } to {opacity:1;translate:0 0;} }
 
 /* The selected works are 6 individually art-directed compositions. */
 .brand-public .sfn-work-section { background:#f5f2e9; padding:clamp(5rem,10vw,10rem) 0; color:#1a242c; }
