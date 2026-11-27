@@ -12,3 +12,22 @@
 @media(max-width:1000px){.bt-builder-layout{flex-direction:column;overflow:auto}.bt-builder-library,.bt-builder-inspector{width:100%;max-height:220px;border:0;border-bottom:1px solid #e2e8f0}.bt-builder-library-list{display:flex;flex-wrap:wrap}.bt-builder-library-list button{padding:6px}.bt-builder-layout .bt-builder-canvas{min-height:400px;flex:1;overflow:auto}}
 
 .bt-touch-handle{touch-action:none;}
+
+/* Editor-only controls: maintain usable sizing without altering published templates. */
+.bt-builder-layout { min-width:0; }
+.bt-builder-library,.bt-builder-inspector { color:#172033; background:#fff; overscroll-behavior:contain; }
+.bt-builder-library p,.bt-builder-inspector p { font-size:14px; color:#475569; }
+.bt-builder-library h3,.bt-builder-inspector h3 { color:#172033; font-size:16px; }
+.bt-builder-library-list button,.bt-builder-tools button,.bt-builder-drop button { min-height:40px; font-size:13px; }
+.bt-builder-tools button { min-width:40px; }
+.bt-builder-layout :is(button,a,input,select,textarea,[role="button"]):focus-visible { outline:3px solid #4f46e5; outline-offset:2px; }
+.bt-builder-section[data-selected=true] { box-shadow:0 0 0 2px #c7d2fe; }
+.bt-builder-content:focus-visible { outline-offset:-4px!important; }
+@media(max-width:1000px) {
+  .bt-builder-library,.bt-builder-inspector { max-height: min(38dvh, 300px); flex-shrink:0; }
+  .bt-builder-layout .bt-builder-canvas { min-height: min(420px, 60dvh); }
+  .bt-builder-library-list button,.bt-builder-tools button,.bt-builder-drop button { min-height:44px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .bt-builder-layout :is(button,input,select,textarea) { transition:none!important; }
+}
