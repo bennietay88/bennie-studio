@@ -61,7 +61,7 @@ export function BuilderCanvasSection({section,index,total,canvas,children}:{sect
         </div>
       </div>
       {section.content?.interaction==="visual_layout" && section.isVisible!==false ? <VisualBlockEditor value={section.content.blocks} onChange={blocks=>canvas.onPatch(section.id,{blocks})}/> : <div className="bt-builder-content" onClick={()=>canvas.onSelect(section.id)} data-builder-control>
-        {section.isVisible===false ? <div className="bt-builder-placeholder">Hidden section · Show to preview</div> : children || <div className="bt-builder-placeholder">Section has no visible content yet</div>}
+        {section.isVisible===false ? <div className="bt-builder-placeholder">Hidden section · Show to preview</div> : children ? <div inert>{children}</div> : <div className="bt-builder-placeholder">Section has no visible content yet</div>}
       </div>}
     </div>
   </div>;
