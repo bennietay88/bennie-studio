@@ -1,4 +1,5 @@
 import React from "react";
+import { DemoIndustryPhoto } from "./DemoIndustryPhoto";
 import { Helmet } from "react-helmet-async";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronDown, Menu, X, MoveUpRight } from "lucide-react";
@@ -8,6 +9,9 @@ import { hasExpandedDemo, INTERACTIVE_DEMOS, type InteractiveDemoSpec } from "..
 type DemoPage = "home" | "services" | "about" | "contact";
 const pages: DemoPage[] = ["home", "services", "about", "contact"];
 function Artwork({ spec }: { spec: InteractiveDemoSpec }) {
+  return <DemoIndustryPhoto key={spec.slug} slug={spec.slug} tone={spec.muted}><ConceptArtwork spec={spec}/></DemoIndustryPhoto>;
+}
+function ConceptArtwork({ spec }: { spec: InteractiveDemoSpec }) {
   const a=spec.accent, bg=spec.background, ink=spec.foreground;
   const symbol=<span className="text-xs font-semibold uppercase tracking-[.2em]">STUDIO / {spec.style}</span>;
   if(spec.style==="architecture"||spec.style==="editorial") return <div aria-hidden="true" className="relative flex min-h-[340px] flex-col justify-between overflow-hidden p-6 sm:min-h-[440px] sm:p-10" style={{background:spec.muted,color:ink}}>
@@ -123,6 +127,7 @@ export default function StudioExpandedLivePreview() {
     </main>}
     {currentPage==="services"&&<main>
       <PageIntro spec={spec} label="01 / Explore" title="Services with a clear next step." description={spec.intro}/>
+      <div className="mx-auto max-w-7xl px-5 pb-8 sm:px-8 lg:px-12"><DemoIndustryPhoto slug={spec.slug} tone={spec.muted} compact/></div>
       <section className="mx-auto max-w-7xl px-5 pb-20 sm:px-8 lg:px-12">
         <div className="grid gap-6 lg:grid-cols-[.55fr_1fr]"><div className="flex flex-col gap-3" role="group" aria-label="Select a service">{spec.services.map((s,i)=><button key={s.title} aria-pressed={selected===i} type="button" onClick={()=>setSelected(i)} className={"flex min-h-20 items-center justify-between gap-3 border px-5 py-4 text-left text-lg font-semibold transition hover:opacity-80 "+rounded} style={{borderColor:spec.muted,background:selected===i?spec.foreground:spec.background,color:selected===i?spec.background:spec.foreground}}><span>{s.title}</span><ArrowRight size={18}/></button>)}</div>
           <div className={"min-h-[370px] p-8 sm:p-12 "+rounded} style={{background:spec.muted}}><span className="text-xs font-bold uppercase tracking-[.2em]">Service / 0{selected+1}</span><h2 className="mt-16 max-w-lg font-serif text-4xl sm:text-5xl">{spec.services[selected].title}</h2><p className="mt-6 max-w-xl leading-8 opacity-80">{spec.services[selected].detail}</p><div className="mt-9">{action("Discuss this option")}</div></div>
