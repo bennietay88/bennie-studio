@@ -1,3 +1,4 @@
+import { DemoIndustryPhoto } from "./DemoIndustryPhoto";
 import React from "react";
 import { Link, useParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -504,6 +505,9 @@ export const NICHE_PAGE_CONTENT: Record<string, NichePageContent> = {
 };
 
 function DemoArtwork({ slug, content, theme }: { slug: string; content: DemoContent; theme?: { headingOnDark?: string; bodyOnDark?: string } }) {
+  return <DemoIndustryPhoto key={slug} slug={slug}><LegacyDemoArtwork slug={slug} content={content} theme={theme}/></DemoIndustryPhoto>;
+}
+function LegacyDemoArtwork({ slug, content, theme }: { slug: string; content: DemoContent; theme?: { headingOnDark?: string; bodyOnDark?: string } }) {
   const service = (index: number) => content.services[index] || { name: "", copy: "" };
   const headingStyle = { color: theme?.headingOnDark || "#ffffff" };
   const mutedStyle = { color: theme?.bodyOnDark || "rgba(255,255,255,.72)" };
@@ -586,6 +590,7 @@ export default function StudioShowcaseLivePreview() {
     </main> : null}
 
     {currentPage === "services" ? <main>
+      <div className="mx-auto max-w-7xl px-5 pt-8 sm:px-8 lg:px-12"><DemoIndustryPhoto slug={study.slug} compact/></div>
       <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12"><p className="text-xs font-bold uppercase tracking-[.16em]" style={{color:theme}}>Services</p><h1 className="mt-4 max-w-3xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-6xl">{niche.services.title}</h1><p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{niche.services.copy}</p><div className="mt-12 grid gap-5 md:grid-cols-3">{content.services.map((service,index)=><article key={service.name} className="rounded-2xl border border-slate-200 bg-white p-7"><span className="text-xs font-bold" style={{color:theme}}>0{index+1}</span><h2 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900">{service.name}</h2><p className="mt-4 leading-7 text-slate-600">{service.copy}</p><Link to={pageHref("contact")} className="mt-7 inline-flex items-center gap-2 text-sm font-semibold" style={{color:theme}}>Ask about this service <ArrowRight size={15}/></Link></article>)}</div></section>
       <section className="border-y border-slate-200 bg-[#f7f8fa]"><div className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20 lg:px-12"><div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[.16em]" style={{color:theme}}>What each service includes</p><h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{niche.services.title}</h2><p className="mt-4 leading-7 text-slate-600">{niche.services.copy}</p></div><div className="mt-10 grid gap-4 lg:grid-cols-3">{niche.services.details.map((item,index)=><article key={item.title} className="border-t-2 bg-white p-6 sm:p-7" style={{borderColor:theme}}><span className="text-xs font-bold" style={{color:theme}}>0{index+1}</span><h3 className="mt-5 text-xl font-semibold text-slate-900">{item.title}</h3><p className="mt-3 leading-7 text-slate-600">{item.copy}</p></article>)}</div></div></section>
       <section className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1fr_.8fr] lg:px-12"><div><p className="text-xs font-bold uppercase tracking-[.16em]" style={{color:theme}}>Choosing a starting point</p><h2 className="mt-3 text-3xl font-semibold text-slate-950">{content.sectionTitle}</h2><p className="mt-4 max-w-xl leading-7 text-slate-600">{niche.services.copy}</p><Link to={pageHref("contact")} className="mt-7 inline-flex items-center gap-2 text-sm font-semibold" style={{color:theme}}>Talk through your needs <ArrowRight size={15}/></Link></div><div className="divide-y divide-slate-200 border-y border-slate-200">{niche.services.questions.map((item,index)=><article key={item.question} className="py-5"><h3 className="font-semibold text-slate-900"><span className="mr-3 font-serif italic" style={{color:theme}}>0{index+1}</span>{item.question}</h3><p className="mt-2 pl-9 text-sm leading-7 text-slate-600">{item.answer}</p></article>)}</div></section>
