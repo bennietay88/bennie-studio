@@ -86,7 +86,8 @@ const PersonalProfilePage = lazy(() => import("./components/PersonalProfilePage"
 const LoginPage = lazy(() => import("./components/LoginPage"));
 const OwnSalesSeoPage = lazy(() => import("./components/OwnSalesSeoPage"));
 const ComparisonGuidePage = lazy(() => import("./components/ComparisonGuidePage"));
-const PublicMarketingPages = lazy(() => import("./components/PublicMarketingPages"));
+const loadPublicMarketingPages = () => import("./components/PublicMarketingPages");
+const PublicMarketingPages = lazy(loadPublicMarketingPages);
 const StudioCaseStudyDetail = lazy(() => import("./components/StudioCaseStudyDetail"));
 const StudioShowcaseLivePreview = lazy(() => import("./components/StudioShowcasePreviewRouter"));
 const PublicBlogPostPage = lazy(() => import("./components/PublicBlogPostPage"));
@@ -237,8 +238,9 @@ function TrafficTracker() {
 function ScrollToTop() {
   const { pathname } = useLocation();
 
-  React.useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  React.useLayoutEffect(() => {
+    // A route change must not inherit the document's smooth anchor scrolling.
+    if (!window.location.hash) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname]);
 
   return null;
@@ -446,10 +448,28 @@ function PublicRouteTransition({ children }: { children: React.ReactNode }) {
       pathname.startsWith(prefix.endsWith("/") ? prefix : `${prefix}/`),
   );
 
+  React.useEffect(() => {
+    if (!isPublicRoute) return;
+    const prefetchMarketingPage = (event: Event) => {
+      if (!(event.target instanceof Element)) return;
+      const link = event.target.closest("a[href]");
+      if (!(link instanceof HTMLAnchorElement) || link.origin !== window.location.origin || link.target === "_blank" || link.hasAttribute("download")) return;
+      if (/^\/(services|pricing|about|resources|contact|templates|how-it-works|case-studies|generate-preview|website-audit)\/?$/.test(link.pathname)) {
+        void loadPublicMarketingPages().catch(() => { /* Navigation retains normal lazy-load recovery. */ });
+      }
+    };
+    document.addEventListener("pointerover", prefetchMarketingPage);
+    document.addEventListener("focusin", prefetchMarketingPage);
+    return () => {
+      document.removeEventListener("pointerover", prefetchMarketingPage);
+      document.removeEventListener("focusin", prefetchMarketingPage);
+    };
+  }, [isPublicRoute]);
+
   if (!isPublicRoute) return <>{children}</>;
 
   return (
-    <div key={pathname} className="bt-public-route-transition">
+    <div className="bt-public-route-transition">
       {children}
     </div>
   );

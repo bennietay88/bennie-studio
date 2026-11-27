@@ -204,7 +204,7 @@ async function signInAs(page: Page, persona: Persona, state?: CustomerState) {
     // finish loading. Settling the shell here prevents the next direct route
     // navigation from cancelling those imports in Firefox and WebKit.
     await page
-      .getByRole("link", { name: "Overview", exact: true })
+      .locator("#workspace-main")
       .or(page.getByRole("heading", { name: "Subscription access paused" }))
       .waitFor({ state: "visible" });
   }
@@ -302,8 +302,29 @@ test("website portfolio preserves independent site selection and quotas",async({
  const secondary=page.locator("article").filter({hasText:"Secondary fixture"});
  await expect(secondary.getByRole("link",{name:"Manage site"})).toHaveAttribute("href","/dashboard/websites/"+second);
  await expect(secondary.getByRole("button",{name:"Duplicate"})).toBeDisabled();
+ await page.getByRole("textbox",{name:"Search websites"}).fill("no match");
+ await expect(page.getByText("No websites match your filters")).toBeVisible();
+ await page.getByRole("button",{name:"Clear filters"}).click();
+ await expect(secondary.getByRole("link",{name:"Manage site"})).toBeVisible();
+ await expect(page.getByText("Project limit",{exact:true})).toBeVisible();
+ await expect(page.getByText("Pages per website",{exact:true})).toBeVisible();
  page.once("dialog",dialog=>dialog.accept());
  await secondary.getByRole("button",{name:"Archive"}).click();
  await expect.poll(()=>mutation?.siteId).toBe(second);
  await expect.poll(()=>mutation?.action).toBe("archive");
+});
+
+test("workspace mobile sidebar is hidden until opened and closes with Escape",async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await signInAs(page,testPersonas.businessAdmin);
+ const trigger=page.getByRole("button",{name:"Open sidebar navigation"});
+ await expect(trigger).toBeVisible();
+ await expect(trigger).toHaveAttribute("aria-expanded","false");
+ await expect(page.locator("#workspace-sidebar")).toBeHidden();
+ await trigger.click();
+ await expect(trigger).toHaveAttribute("aria-expanded","true");
+ await expect(page.locator("#workspace-sidebar")).toBeVisible();
+ await page.keyboard.press("Escape");
+ await expect(trigger).toHaveAttribute("aria-expanded","false");
+ await expect(page.locator("#workspace-sidebar")).toBeHidden();
 });

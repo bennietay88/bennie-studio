@@ -43,6 +43,8 @@ test("mobile menu exits cleanly when window expands to desktop", async ({ page }
 test("short-screen navigation keeps the bottom action reachable and route changes close the menu", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 430 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  // Exercise the actual first-visit conflict: do not dismiss or bypass the consent notice.
+  await expect(page.getByRole("button", { name: "Necessary only", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Open navigation menu" }).click();
   const dialog = page.getByRole("dialog", { name: "Navigation menu" });
   const action = dialog.getByRole("link", { name: /Get a free website preview/i });
@@ -51,6 +53,8 @@ test("short-screen navigation keeps the bottom action reachable and route change
   await action.click();
   await expect(page).toHaveURL(/\/generate-preview(?:\?|$)/);
   await expect(dialog).toHaveCount(0);
+  // Cookie consent remains available on the destination and is never silently granted.
+  await expect(page.getByRole("button", { name: "Necessary only", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
 });
 

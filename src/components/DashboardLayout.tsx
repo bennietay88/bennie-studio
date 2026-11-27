@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
+import "../styles/workspaceUi.css";
 import { Sidebar } from "./Sidebar";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { UserRole } from "../types";
@@ -79,6 +80,12 @@ export function DashboardLayout({
     }
     return "light";
   });
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setIsSidebarOpen(false); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isSidebarOpen]);
   const [platformSettings, setPlatformSettings] = useState<any>(null);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
 
@@ -209,7 +216,7 @@ export function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden transition-colors duration-300 flex-col">
+    <div className="bt-workspace flex h-dvh bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden transition-colors duration-300 flex-col">
       <Helmet>
         {/* Platform GA4 */}
         {platformSettings?.gaMeasurementId && (
@@ -256,6 +263,7 @@ export function DashboardLayout({
           />
         )}
       </Helmet>
+      <a href="#workspace-main" className="bt-workspace-skip">Skip to workspace content</a>
       {business && <TrialReminder business={business} />}
       <div className="flex flex-1 overflow-hidden">
         {/* Mobile Overlay */}
@@ -267,10 +275,10 @@ export function DashboardLayout({
         )}
 
         {/* Sidebar Container */}
-        <div
+        <div id="workspace-sidebar"
           className={cn(
-            "fixed inset-y-0 left-0 z-50 transform transition-all duration-500 ease-in-out xl:relative xl:translate-x-0 flex-shrink-0",
-            isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+            "fixed inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-out motion-reduce:transition-none xl:visible xl:relative xl:translate-x-0 flex-shrink-0",
+            isSidebarOpen ? "visible translate-x-0" : "invisible -translate-x-full",
             isCollapsed ? "w-20" : "w-72",
           )}
         >
@@ -292,6 +300,8 @@ export function DashboardLayout({
                 size="sm"
                 onClick={() => setIsSidebarOpen(true)}
                 aria-label="Open sidebar navigation"
+                aria-expanded={isSidebarOpen}
+                aria-controls="workspace-sidebar"
                 className="xl:hidden p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
               >
                 <Menu className="h-6 w-6 text-slate-600 dark:text-slate-400" />
@@ -413,21 +423,18 @@ export function DashboardLayout({
             </div>
           </header>
 
-          <main className={cn("flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-10 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
+          <main id="workspace-main" tabIndex={-1} className={cn("bt-workspace-main flex-1 overflow-x-hidden overflow-y-auto p-3 pb-24 transition-colors duration-300 sm:p-6 lg:p-8 sm:pb-10", isAdminRole && "bg-slate-50/70 dark:bg-slate-950/40")}>
             <div className={cn("mx-auto w-full min-w-0 max-w-[1600px]", isAdminRole ? "lg:w-[96%]" : "lg:w-[90%]")}>
               <Breadcrumbs />
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={location.pathname}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
-                  transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  className="min-w-0"
-                >
-                  {children}
-                </motion.div>
-              </AnimatePresence>
+              <motion.div
+                key={location.pathname}
+                initial={prefersReducedMotion ? false : { opacity: 0.96 }}
+                animate={{ opacity: 1 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.12, ease: "easeOut" }}
+                className="min-w-0"
+              >
+                {children}
+              </motion.div>
             </div>
           </main>
         </div>
@@ -437,13 +444,13 @@ export function DashboardLayout({
               {mobileAdminLinks.map(({ label, path, icon: Icon }) => {
                 const active = path === "/admin" ? location.pathname === "/admin" : location.pathname.startsWith(path);
                 return (
-                  <button key={path} type="button" onClick={() => { setIsSidebarOpen(false); navigate(path); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold transition-colors", active ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300" : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800")}>
+                  <button key={path} type="button" aria-current={active ? "page" : undefined} onClick={() => { setIsSidebarOpen(false); navigate(path); }} className={cn("flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold transition-colors", active ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300" : "text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800")}>
                     <Icon className="h-4 w-4" />
                     <span>{label}</span>
                   </button>
                 );
               })}
-              <button type="button" onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
+              <button type="button" aria-controls="workspace-sidebar" aria-expanded={isSidebarOpen} onClick={() => setIsSidebarOpen(true)} className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl px-1 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800">
                 <MoreHorizontal className="h-4 w-4" />
                 <span>More</span>
               </button>

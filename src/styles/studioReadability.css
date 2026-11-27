@@ -385,3 +385,24 @@
   .brand-public .sfn-mobile-cta a:first-child { font-size:14px; }
   .brand-public .sfn-mobile-cta a:last-child { font-size:13px; }
 }
+
+
+/* Explicit foreground/background pairs on plan comparison surfaces. */
+.brand-public .bs-sales-pricing .s28-compare { color: #192b40; }
+.brand-public .bs-sales-pricing .s28-compare h2 { color: #192b40 !important; }
+.brand-public .bs-sales-pricing .s28-compare > p { color: #354d64 !important; }
+.brand-public .bs-sales-pricing .s28-compare-scroll { background: #fff; }
+.brand-public .bs-sales-pricing .s28-compare table th {
+  background: #eaf0f7; color: #192b40 !important;
+  font-size: 14px; line-height: 1.55; overflow-wrap: anywhere;
+}
+.brand-public .bs-sales-pricing .s28-compare table td {
+  background: #fff; color: #354d64 !important;
+  font-size: 14px; line-height: 1.55; overflow-wrap: anywhere;
+}
+.brand-public .bs-sales-pricing .s28-compare section[aria-label] { background: #fff; color: #192b40; }
+.brand-public .bs-sales-pricing .s28-compare section[aria-label] h3,
+.brand-public .bs-sales-pricing .s28-compare dd { color: #192b40 !important; }
+.brand-public .bs-sales-pricing .s28-compare dt { color: #354d64 !important; }
+.brand-public .bs-sales-pricing .s28-compare :is(dt,dd) { font-size: 14px; line-height: 1.55; }
+.brand-public .bs-sales-pricing .s28-compare-scroll:focus-visible { outline: 3px solid #1946c3; outline-offset: 3px; }

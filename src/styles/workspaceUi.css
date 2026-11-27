@@ -1,0 +1,22 @@
+/* Workspace-only design primitives; exclude embedded customer website renderers. */
+.bt-workspace { --workspace-ink:#172033; --workspace-muted:#475569; --workspace-line:#dbe3ed; --workspace-surface:#fff; color:var(--workspace-ink); }
+.dark .bt-workspace { --workspace-ink:#f1f5f9; --workspace-muted:#cbd5e1; --workspace-line:#334155; --workspace-surface:#0f172a; }
+.bt-workspace-main { scrollbar-gutter:stable; }
+.bt-workspace-main :where(h1,h2,h3):not(.bt-website-renderer *, .bt-builder-canvas *) { line-height:1.22; overflow-wrap:anywhere; }
+.bt-workspace-main :where([data-slot="card-description"],[data-slot="table-caption"]):not(.bt-website-renderer *, .bt-builder-canvas *) { color:var(--workspace-muted); line-height:1.55; }
+.bt-workspace-main :where([data-slot="table"]):not(.bt-website-renderer *, .bt-builder-canvas *) { font-size:14px; line-height:1.5; }
+.bt-workspace-main :where([data-slot="table-head"]):not(.bt-website-renderer *, .bt-builder-canvas *) { color:var(--workspace-ink); font-weight:650; }
+.bt-workspace :where(button,a,input,select,textarea,summary):not(.bt-website-renderer *, .bt-builder-canvas *):focus-visible { outline:2px solid #6366f1; outline-offset:3px; }
+.bt-workspace-skip { position:fixed; left:1rem; top:1rem; z-index:200; padding:.75rem 1rem; border-radius:.5rem; background:var(--workspace-surface); color:var(--workspace-ink); transform:translateY(-200%); }
+.bt-workspace-skip:focus { transform:none; }
+.bt-workspace-state { display:flex; flex-wrap:wrap; align-items:center; gap:12px; border:1px solid var(--workspace-line); background:var(--workspace-surface); color:var(--workspace-ink); border-radius:12px; padding:20px; min-height:88px; }
+.bt-workspace-state p { color:inherit; overflow-wrap:anywhere; }
+.bt-workspace-state[data-compact="true"] { padding:12px; min-height:0; margin-bottom:12px; }
+.bt-workspace-state[data-kind="error"] { border-color:#be123c; color:#9f1239; }
+.bt-workspace-state[data-kind="success"] { border-color:#15803d; color:#166534; }
+.dark .bt-workspace-state[data-kind="error"] { color:#fda4af; }
+.dark .bt-workspace-state[data-kind="success"] { color:#86efac; }
+.bt-portfolio article { min-width:0; }
+.bt-portfolio select { max-width:100%; }
+@media(max-width:639px) { .bt-workspace-main { scrollbar-gutter:auto; } .bt-portfolio :is(input,select) { min-height:44px; font-size:16px; } }
+@media(prefers-reduced-motion:reduce) { .bt-workspace :where(button,a):not(.bt-website-renderer *, .bt-builder-canvas *) { transition:none; } }
