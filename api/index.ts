@@ -14172,6 +14172,7 @@ async function startServer() {
     const publicLeadBody = validateBody(
       z.object({
         businessId: UUID_SCHEMA,
+        websiteId: UUID_SCHEMA.optional(),
         name: TEXT_SCHEMA,
         email: EMAIL_SCHEMA,
         phone: z.string().trim().max(80).optional().nullable(),
@@ -14193,16 +14194,17 @@ async function startServer() {
     );
     if (!publicLeadBody) return;
 
-    const { businessId, name, email, phone, service, message, visitorId, sessionId, refCode, source, sourcePage, formName, consentText, consentTimestamp, marketingConsent, metadata } = publicLeadBody;
+    const { businessId, websiteId, name, email, phone, service, message, visitorId, sessionId, refCode, source, sourcePage, formName, consentText, consentTimestamp, marketingConsent, metadata } = publicLeadBody;
 
     try {
-      const { data: websiteRecord } = await supabaseAdmin
-        .from("websites")
-        .select("id,status")
-        .eq("business_id", businessId)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const explicitId = websiteId || metadata?.websiteId;
+      if (explicitId && !UUID_SCHEMA.safeParse(explicitId).success) return res.status(400).json({error:"Invalid website ID"});
+      let siteQuery = supabaseAdmin.from("websites").select("id,status,is_primary").eq("business_id",businessId).eq("is_internal_pilot",false);
+      if(explicitId) siteQuery=siteQuery.eq("id",explicitId);
+      const {data:siteRows,error:siteError}=await siteQuery.order("is_primary",{ascending:false}).limit(2);
+      if(siteError)throw siteError;
+      const selectedSite=explicitId?siteRows?.[0]:choosePrimaryWebsite(siteRows||[]);
+      const websiteRecord=selectedSite?.status==="published"?selectedSite:null;
 
       if (!websiteRecord) {
         await supabaseAdmin.from("sync_logs").insert({
@@ -14246,11 +14248,13 @@ async function startServer() {
             sourcePage: sourcePage || req.get("referer") || null,
             formVersion: metadata?.formVersion || "gdpr_form_v1",
             ...(metadata || {}),
+            websiteId: websiteRecord.id,
           },
           status: "new",
         },
         {
           business_id: businessId,
+          website_id: websiteRecord.id,
           name,
           email,
           phone,
@@ -14261,6 +14265,7 @@ async function startServer() {
         },
         {
           business_id: businessId,
+          website_id: websiteRecord.id,
           name,
           email,
           phone,
@@ -14297,6 +14302,7 @@ async function startServer() {
         .from("tracking_events")
         .insert({
           business_id: businessId,
+          website_id: websiteRecord.id,
           event_type: "lead_form_submit",
           source_platform: "website",
           source_page: sourcePage || req.get("referer") || null,
@@ -14320,6 +14326,7 @@ async function startServer() {
           .from("page_views")
           .insert({
             business_id: businessId,
+            website_id: websiteRecord.id,
             visitor_id: visitorId || lead.id,
             session_id: sessionId || visitorId || lead.id,
             page_path: sourcePage || "/contact",
@@ -14421,6 +14428,7 @@ async function startServer() {
       const interactionBody = validateBody(
         z.object({
           businessId: UUID_SCHEMA,
+        websiteId: UUID_SCHEMA.optional(),
           visitorId: z.string().trim().max(120).optional().nullable(),
           sessionId: z.string().trim().max(120).optional().nullable(),
           eventType: z.string().trim().min(1).max(80),
@@ -14440,6 +14448,7 @@ async function startServer() {
 
       const {
         businessId,
+        websiteId,
         visitorId,
         sessionId,
         eventType,
@@ -14454,12 +14463,12 @@ async function startServer() {
       } = interactionBody;
 
       try {
-        const { data: publishedSite } = await supabaseAdmin
-          .from("websites")
-          .select("id")
-          .eq("business_id", businessId)
-          .eq("status", "published")
-          .maybeSingle();
+        let siteQuery=supabaseAdmin.from("websites").select("id,status,is_primary").eq("business_id",businessId).eq("is_internal_pilot",false);
+        if(websiteId)siteQuery=siteQuery.eq("id",websiteId);
+        const {data:siteRows,error:siteError}=await siteQuery.order("is_primary",{ascending:false}).limit(2);
+        if(siteError)throw siteError;
+        const selectedSite=websiteId?siteRows?.[0]:choosePrimaryWebsite(siteRows||[]);
+        const publishedSite=selectedSite?.status==="published"?selectedSite:null;
 
         if (!publishedSite) {
           return res.status(404).json({ error: "Published website not found" });
@@ -14500,6 +14509,8 @@ async function startServer() {
             .select("id")
             .eq("business_id", businessId)
             .eq("visitor_id", normalizedVisitorId)
+            .eq("website_id", publishedSite.id)
+            .limit(1)
             .maybeSingle();
 
           leadId = existingLead?.id || null;
@@ -14515,6 +14526,7 @@ async function startServer() {
               .from("leads")
               .insert({
                 business_id: businessId,
+                website_id: publishedSite.id,
                 name: name || "Anonymous Website Visitor",
                 email: email || `visitor-${visitorHash}@bennietay.local`,
                 phone,
@@ -14535,6 +14547,7 @@ async function startServer() {
           .from("page_views")
           .insert({
             business_id: businessId,
+            website_id: publishedSite.id,
             visitor_id: normalizedVisitorId,
             session_id: sessionId || normalizedVisitorId,
             page_path: `${eventType}:${pagePath || "/"}`,
@@ -14549,11 +14562,13 @@ async function startServer() {
           .from("tracking_events")
           .insert({
             business_id: businessId,
+            website_id: publishedSite.id,
             event_type: eventType,
             source_platform: "website",
             source_page: pagePath,
             metadata: {
               ...metadata,
+              websiteId: publishedSite.id,
               leadId,
               visitorId: normalizedVisitorId,
               label: actionLabel,
