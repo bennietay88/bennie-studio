@@ -14241,7 +14241,6 @@ async function startServer() {
           form_version: metadata?.formVersion || "gdpr_form_v1",
           raw_fields: {
             service,
-            websiteId: websiteRecord.id,
             consentText,
             consentTimestamp,
             marketingConsent,
