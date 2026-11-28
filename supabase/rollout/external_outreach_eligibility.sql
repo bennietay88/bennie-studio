@@ -9,6 +9,7 @@ DECLARE
   v_consent_at timestamptz;
   v_external_at timestamptz;
   v_external boolean := false;
+  v_manual boolean := false;
 BEGIN
   IF new.status IN ('queued','scheduled','sending') AND new.prospect_id IS NOT NULL THEN
     SELECT p.contact_email, coalesce(p.marketing_consent,false), p.consent_timestamp
@@ -37,7 +38,24 @@ BEGIN
         v_external := false;
       END;
     END IF;
-    IF NOT v_consent AND NOT v_external THEN
+    -- The server has already checked the authenticated operator, template,
+    -- confirmed history, stage timing and duplicate protection. A missing CRM
+    -- consent flag is not a recorded withdrawal. Do not extend this exemption
+    -- to queued/scheduled campaigns, untrusted writers, or explicit opt-outs.
+    v_manual := coalesce(
+      current_user = 'service_role'
+      AND v_consent_at IS NULL
+      AND new.direction = 'outbound' AND new.channel = 'email' AND new.status = 'sending'
+      AND new.provider_payload->'directSend' = 'true'::jsonb
+      AND new.provider_payload->'manualProspectEmail' = 'true'::jsonb
+      AND coalesce(new.provider_payload->>'actorId','') <> ''
+      AND lower(trim(new.recipient)) = lower(trim(v_email))
+      AND new.provider_payload->>'templateId' IN (
+        'bulk-introduction','introduction','general-introduction',
+        'day3_design','day3_audit','day3_portfolio_existing','day3_portfolio_no_site','day3_neutral',
+        'day8_existing','day8_no_site','day8_neutral','day15_existing','day15_no_site','day15_neutral'
+      ),false);
+    IF NOT v_consent AND NOT v_external AND NOT v_manual THEN
       RAISE EXCEPTION 'prospect is not eligible for outreach';
     END IF;
   END IF;
