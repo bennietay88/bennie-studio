@@ -60,7 +60,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
               if (!response.ok) throw new Error("Current prospect history could not be verified.");
               const history = await response.json();
               if (!history.prospect || !Array.isArray(history.messages)) throw new Error("Current prospect history is incomplete.");
-              const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides, { draftOnly: false });
+              const preview = prepareManualBulkIntro(history.prospect, history.messages, overrides, { draftOnly: true });
               // Defensive fallback for an eligibility-mode result; draft-only previews do not check recipient consent.
               if (preview.kind === "permission_review") return { ...preview, kind: "skip", requestId, delivery: "skipped", reason: preview.reason || "Recipient permission evidence is incomplete. No email attempted." };
               return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" };
@@ -179,7 +179,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             <Mail className="h-5 w-5 text-indigo-600" /> Send introductions to new prospects
           </DialogTitle>
           <DialogDescription className="leading-6">
-            Review up to 25 selected prospects. Draft preparation does not authorize delivery. Only new, uncontacted prospects can qualify. The server rechecks contact history, suppression and duplicate protection before sending.
+            Review up to 25 selected prospects. Draft preparation does not require a permission record or authorize delivery. Delivery eligibility is checked by the server. Only new, uncontacted prospects can qualify. The server rechecks contact history, suppression and duplicate protection before sending.
             Existing outbound email history, replies, closed records or duplicate recipients are skipped.
             Opening this screen never sends an email.
           </DialogDescription>

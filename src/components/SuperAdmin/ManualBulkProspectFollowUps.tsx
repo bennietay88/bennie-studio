@@ -61,7 +61,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               if (!response.ok) throw new Error("Current prospect history could not be verified.");
               const payload = await response.json();
               if (!payload.prospect || !Array.isArray(payload.messages)) throw new Error("Current prospect history is incomplete.");
-              const preview = prepareManualBulkFollowUp(payload.prospect, payload.messages, overrides, new Date(), { draftOnly: false });
+              const preview = prepareManualBulkFollowUp(payload.prospect, payload.messages, overrides, new Date(), { draftOnly: true });
               return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" } as PreviewRow;
             } catch (error: any) {
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip", reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" } as PreviewRow;
@@ -169,7 +169,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         <DialogHeader className="shrink-0 border-b border-slate-200 px-5 py-5 pr-14 sm:px-7">
           <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-950"><Mail className="h-5 w-5 text-indigo-600" /> Send selected follow-ups</DialogTitle>
           <DialogDescription className="leading-6">
-            Review the prepared drafts, then click Send to authorize the batch. The server rechecks follow-up timing, suppression and duplicate protection before delivery. Opening this screen never sends emails.
+            Review the prepared drafts. Draft preparation does not require a permission record; delivery eligibility is checked by the server when you submit the batch. The server rechecks follow-up timing, suppression and duplicate protection before delivery. Opening this screen never sends emails.
             Prospects without a confirmed earlier email, not yet due, already replied, or closed are skipped.
           </DialogDescription>
         </DialogHeader>
