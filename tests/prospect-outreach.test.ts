@@ -62,3 +62,21 @@ test("first-touch outreach does not require scored intent evidence on the client
   assert.doesNotMatch(api, /OUTREACH_QUALIFICATION_REQUIRED|qualification: z\.object/);
   assert.doesNotMatch(sales, /OUTREACH_QUALIFICATION_REQUIRED|evaluateOutreachQualification/);
 });
+
+
+test("bulk prospect deletion uses caller-authenticated soft delete and reports actual results", () => {
+  const bulk = readFileSync("server/prospectFollowUps.ts", "utf8");
+  assert.match(bulk, /actorDb\.rpc\("soft_delete_prospect"/);
+  assert.doesNotMatch(bulk, /from\("prospects"\)\.delete\(/);
+  assert.match(api, /bulkManageProspectFollowUps\(supabaseAdmin, body\.ids, body\.action, actorDb\)/);
+  assert.match(ui, /result\.processedIds/);
+});
+
+test("bulk sends enforce eligibility before dispatch and distinguish zero submissions", () => {
+  for (const name of ["ManualBulkProspectFollowUps", "ManualBulkProspectIntros"]) {
+    const modal = readFileSync("src/components/SuperAdmin/" + name + ".tsx", "utf8");
+    assert.doesNotMatch(modal, /draftOnly: true/);
+    assert.match(modal, /No emails submitted/);
+  }
+  assert.match(api, /error\?\.code === "P0001" && error\?\.message === "prospect is not eligible for outreach"/);
+});
