@@ -13,6 +13,8 @@ export default function PublicProposalPage() {
   const [loading, setLoading] = React.useState(true);
   const [accepting, setAccepting] = React.useState(false);
   const [accepted, setAccepted] = React.useState(false);
+  const [paid,setPaid]=React.useState(false);
+  const [checkoutReady,setCheckoutReady]=React.useState(false);
   const [email, setEmail] = React.useState("");
   const [termsAccepted, setTermsAccepted] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -26,7 +28,9 @@ export default function PublicProposalPage() {
         if (!response.ok) throw new Error(payload.error || "Proposal not found");
         if (!cancelled) {
           setProposal(payload.proposal);
-          setAccepted(Boolean(payload.proposal?.config?.paymentRecorded));
+          setPaid(Boolean(payload.proposal?.config?.paymentRecorded));
+          setAccepted(payload.proposal?.status==="Accepted");
+          setCheckoutReady(Boolean(payload.proposal?.config?.checkoutReady));
         }
       } catch (loadError: any) {
         if (!cancelled) setError(loadError.message || "Proposal could not be loaded");
@@ -40,15 +44,18 @@ export default function PublicProposalPage() {
 
   const accept = async (event: React.FormEvent) => {
     event.preventDefault();
+    if(!termsAccepted||paid)return;
     setAccepting(true);
     setError("");
     try {
       const response = await fetch(`/api/public/proposals/${encodeURIComponent(token || "")}/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, termsAccepted: true }) });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Proposal could not be accepted");
-      if(payload.paid){setAccepted(true);return;}
-      if(payload.checkoutUrl){const url=new URL(payload.checkoutUrl);if(url.protocol==="https:"&&["checkout.stripe.com","buy.stripe.com"].includes(url.hostname)){window.location.assign(url.href);return;}}
-      setError("Your acceptance is recorded. Please return to this proposal once Bennie Studio has prepared secure checkout.");
+      if(payload.paid){setPaid(true);setAccepted(true);return;}
+      setAccepted(true);
+      setProposal((current:any)=>({...current,status:"Accepted"}));
+      if(payload.checkoutUrl){const url=new URL(payload.checkoutUrl);if(url.protocol==="https:"&&["checkout.stripe.com","buy.stripe.com"].includes(url.hostname)){window.location.assign(url.href);return;}throw Error("Secure checkout address could not be verified. Contact Bennie Studio.");}
+      setCheckoutReady(false);
     } catch (acceptError: any) {
       setError(acceptError.message || "Proposal could not be accepted");
     } finally {
@@ -73,7 +80,7 @@ export default function PublicProposalPage() {
         <div className="mt-7 rounded-xl border border-[#dbe1ea] bg-[#eef3ff] p-5 text-sm leading-6 text-[#25364b]"><ShieldCheck className="mb-3 h-5 w-5 text-indigo-600" />This proposal describes the managed work and commercial terms. It does not promise rankings, traffic, revenue, or a specific number of enquiries.</div>
       </section>
       <aside className="h-fit min-w-0 rounded-2xl border border-[#dbe1ea] bg-[#101c36] p-6 text-white sm:p-8"><p className="text-xs font-bold uppercase tracking-[0.14em] text-[#b9caff]">{proposal.package_name}</p><div className="mt-6"><p className="break-words text-4xl font-bold tracking-tight">{money(proposal.config?.billing==="one_time"?proposal.setup_fee:proposal.value)}<span className="text-base text-slate-400">{proposal.config?.billing==="one_time"?" one-time":"/month"}</span></p><p className="mt-2 text-sm font-semibold text-slate-300">{proposal.config?.billing==="one_time"?"Scoped one-time service":money(proposal.setup_fee)+" one-time setup"}</p></div><div className="mt-6 space-y-2 border-y border-white/10 py-5 text-sm font-semibold text-slate-300"><p>Initial commitment: {commitmentMonths} month{commitmentMonths === 1 ? "" : "s"}</p><p>Valid until: {proposal.expires_at || "Confirm with Bennie Studio"}</p><p>Status: {proposal.status}</p></div>
-        {accepted ? <div className="mt-6 rounded-xl border border-emerald-200/20 bg-emerald-400/10 p-5 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" /><h2 className="mt-3 text-xl font-bold">Payment recorded</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Your agreed scope and commercial terms are recorded. Payment has been recorded. Bennie Studio will review the payment and arrange the next service steps.</p>{proposal.checkout_url&& /^https:\/\/buy\.stripe\.com\//.test(proposal.checkout_url)&&<a className="mt-4 inline-flex rounded-lg bg-[#1741ed] px-5 py-3 font-semibold text-white" href={proposal.checkout_url}>Continue secure checkout</a>}</div> : <form onSubmit={accept} className="mt-6 space-y-4"><div><Label htmlFor="proposal-email" className="text-slate-300">Confirm your email</Label><Input id="proposal-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email used for this proposal" className="mt-2 h-12 rounded-xl bg-white text-slate-950" /></div><label className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-xs font-semibold leading-5 text-slate-300"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm the scope and {proposal.config?.billing==="one_time"?"one-time service":commitmentMonths+"-month initial commitment and recurring service"} shown above, and I agree to the <Link to={`/terms?market=${termsMarket}`} target="_blank" className="text-indigo-300 underline underline-offset-2">Terms of Service</Link>.</span></label>{error && <p className="rounded-lg border border-rose-300/30 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</p>}<Button type="submit" disabled={accepting || !termsAccepted} className="min-h-12 w-full rounded-lg bg-[#1741ed] px-6 font-bold text-white hover:bg-[#2c57fa] disabled:cursor-not-allowed disabled:opacity-60">{accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Accept proposal <ArrowRight className="ml-2 h-4 w-4" /></>}</Button><p className="text-center text-xs font-semibold leading-5 text-slate-400">Acceptance records the agreed scope and commercial terms before payment.</p></form>}
+        {paid ? <div className="mt-6 rounded-xl border border-emerald-200/20 bg-emerald-400/10 p-5 text-center"><CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" /><h2 className="mt-3 text-xl font-bold">Payment recorded</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">Your agreed scope and commercial terms are recorded. Payment has been recorded. Bennie Studio will review the payment and arrange the next service steps.</p></div> : <><div className={accepted?"mt-6 rounded-xl border border-emerald-200/20 bg-emerald-400/10 p-5 text-center":"hidden"}><CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300"/><h2 className="mt-3 text-xl font-bold">Proposal accepted</h2><p className="mt-2 text-sm font-semibold leading-6 text-slate-300">{checkoutReady?"Your secure checkout is ready. Confirm your email and terms below to proceed.":"Your agreed scope is recorded. Payment is still pending. Bennie Studio will prepare secure checkout; return to this proposal to continue."}</p>{!checkoutReady&&<Button type="button" variant="outline" className="mt-4 bg-white text-slate-900" onClick={()=>window.location.reload()}>Refresh payment status</Button>}</div><form onSubmit={accept} className={accepted&&!checkoutReady?"hidden":"mt-6 space-y-4"}><div><Label htmlFor="proposal-email" className="text-slate-300">Confirm your email</Label><Input id="proposal-email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email used for this proposal" className="mt-2 h-12 rounded-xl bg-white text-slate-950" /></div><label className="flex items-start gap-3 rounded-xl border border-white/15 bg-white/[0.04] p-4 text-xs font-semibold leading-5 text-slate-300"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 shrink-0" /><span>I confirm the scope and {proposal.config?.billing==="one_time"?"one-time service":commitmentMonths===0?"month-to-month recurring service":commitmentMonths+"-month initial commitment and recurring service"} shown above, and I agree to the <Link to={`/terms?market=${termsMarket}`} target="_blank" className="text-indigo-300 underline underline-offset-2">Terms of Service</Link>.</span></label>{error && <p className="rounded-lg border border-rose-300/30 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</p>}<Button type="submit" disabled={accepting || !termsAccepted} className="min-h-12 w-full rounded-lg bg-[#1741ed] px-6 font-bold text-white hover:bg-[#2c57fa] disabled:cursor-not-allowed disabled:opacity-60">{accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{accepted?"Continue to secure checkout":"Accept proposal"} <ArrowRight className="ml-2 h-4 w-4" /></>}</Button><p className="text-center text-xs font-semibold leading-5 text-slate-400">Acceptance records the agreed scope and commercial terms before payment.</p></form></>}
       </aside>
     </div>}
   </main><PublicSiteFooter /></div>;

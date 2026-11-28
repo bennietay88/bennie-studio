@@ -7819,6 +7819,7 @@ async function startServer() {
           .eq("proposal_token", req.params.token)
           .maybeSingle();
         if (error) throw error;
+        res.setHeader("Cache-Control","no-store");
         if (!data || !proposalCanShare(data,previewClaimSecret())) return res.status(404).json({ error: "Proposal not available. Ask Bennie Studio for a current quote." });
         const viewedAt = new Date().toISOString();
         const visitorKey = crypto.createHash("sha256").update(`${req.params.token}:${getClientIp(req)}:${req.get("user-agent") || ""}`).digest("hex").slice(0, 24);
@@ -7829,7 +7830,7 @@ async function startServer() {
           await supabaseAdmin.from("proposals").update({ first_viewed_at: data.first_viewed_at || viewedAt, last_viewed_at: viewedAt, view_count: viewCount }).eq("id", data.id);
           await supabaseAdmin.from("proposal_events").insert({ proposal_id: data.id, event_type: "viewed", metadata: { visitorKey } });
         }
-        const config={market:data.config?.market,currency:data.config?.currency,commitmentMonths:data.config?.commitmentMonths,billing:data.config?.billing,paymentRecorded:Boolean(data.config?.payment?.paidAt)};
+        const config={market:data.config?.market,currency:data.config?.currency,commitmentMonths:data.config?.commitmentMonths,billing:data.config?.billing,paymentRecorded:Boolean(data.config?.payment?.paidAt&&data.config?.payment?.stripeSessionId),checkoutReady:Boolean(data.status==="Accepted"&&data.checkout_url&&!data.config?.payment?.paidAt)};
         return res.json({ proposal: { id:data.id,title:data.title,package_name:data.package_name,value:data.value,setup_fee:data.setup_fee,status:data.status,expires_at:data.expires_at,scope:data.scope,outcome:data.outcome,config,businesses:data.businesses,leads:{name:(data.leads as any)?.name},view_count:viewCount,first_viewed_at:data.first_viewed_at||viewedAt,last_viewed_at:viewedAt } });
       } catch (error) {
         console.error("Public proposal load failed:", error);
