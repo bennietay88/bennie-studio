@@ -1,3 +1,4 @@
+import { loadCommercialReadiness } from "../server/commercialReadiness.js";
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
 import { registerWebsiteAddonRoutes, handleWebsiteAddonWebhook, cancelWebsiteAddonsWithParent } from "../server/websiteAddonRoutes.js";
@@ -7514,6 +7515,11 @@ async function startServer() {
 
   // Commercial data integrity is read-only. Never recreate historical leads from
   // anonymous tracking events: those events do not contain a verified enquiry.
+  app.get("/api/admin/commercial-readiness", authenticate, superAdminOnly, rateLimit({windowMs:60000,max:5,keyPrefix:"commercial-readiness"}), async (_req:any,res:any)=>{
+    try{res.setHeader("Cache-Control","no-store");return res.json(await loadCommercialReadiness(supabaseAdmin,()=>getStripe()));}
+    catch{return res.status(503).json({error:"Commercial readiness data unavailable"});}
+  });
+
   app.get(
     "/api/admin/revenue-health",
     authenticate,
