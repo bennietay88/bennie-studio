@@ -642,22 +642,23 @@ test("reactivation fails closed on suppression, active enrollment, sending and c
   }
 });
 
-test("manual bulk send uses original external evidence without CRM mutation when the database consent prerequisite is satisfied", async () => {
+test("manual bulk send accepts verified external evidence without CRM consent mutation", async () => {
  const prospect = {id:"p1",name:"Example Clinic",status:"qualified",outreach_status:"not_started",contact_email:"clinic@example.com",marketing_consent:false,notes:""};
  const evidence = {email:"clinic@example.com",timestamp:"2026-08-25T10:00:00Z",reference:"Recipient signup form record 123",jurisdiction:"MY",recipientType:"business" as const};
  let sends=0;
  const input={prospectId:"p1",channel:"email" as const,templateId:"bulk-introduction",subject:"Hello",bodyText:"A website question for you.",requestId:"manual-external-intro",actorId:"admin",
   recipientEvidence:evidence,deliver:async(message:Row)=>{sends++;assert.equal(message.provider_payload.recipientPermissionVerified,true);assert.equal(message.provider_payload.permissionSource,"external_record");assert.match(message.provider_payload.permissionEvidenceHash,/^[a-f0-9]{64}$/);return {id:"fixture-external-provider"};}};
- const blocked = new MemoryDb({prospects:[prospect]});
- await assert.rejects(sendDirectProspectOutreach(blocked as any,input,NOW),/CONTACT_PERMISSION_NOT_VERIFIED/);
+ const blocked = new MemoryDb({prospects:[{...prospect}]});
+ await assert.rejects(sendDirectProspectOutreach(blocked as any,{...input,recipientEvidence:undefined},NOW),/CONTACT_PERMISSION_NOT_VERIFIED/);
  assert.equal(sends,0);
  assert.equal(blocked.tables.sales_messages.length,0);
  assert.equal(blocked.tables.prospects[0].marketing_consent,false);
- const db = new MemoryDb({prospects:[{...prospect,...permissioned}]});
+ const db = new MemoryDb({prospects:[{...prospect}]});
  await sendDirectProspectOutreach(db as any,input,NOW);
  assert.equal(sends,1);
- assert.equal(db.tables.prospects[0].marketing_consent,true);
- assert.equal(db.tables.prospects[0].consent_timestamp,permissioned.consent_timestamp);
+ assert.equal(db.tables.prospects[0].marketing_consent,false);
+ assert.equal(db.tables.prospects[0].consent_timestamp,undefined);
+ assert.equal(db.tables.sales_messages[0].provider_payload.permissionRecipient,"clinic@example.com");
  assert.equal(db.tables.sales_messages[0].provider_message_id,"fixture-external-provider");
  await assert.rejects(sendDirectProspectOutreach(new MemoryDb({prospects:[{...prospect,...permissioned}]}) as any,{...input,recipientEvidence:{...evidence,email:"wrong@example.com"}},NOW),/CONTACT_PERMISSION_NOT_VERIFIED/);
  await assert.rejects(sendDirectProspectOutreach(new MemoryDb({prospects:[prospect],sales_suppressions:[{id:"s1",email:"clinic@example.com"}]}) as any,input,NOW),/CONTACT_SUPPRESSED/);

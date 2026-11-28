@@ -724,12 +724,13 @@ export async function sendDirectProspectOutreach(
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
     }
-    if (prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
     // Check existing recipient evidence server-side, not a repeated UI attestation.
     if (!input.replyToMessageId && input.recipientEvidence !== undefined) {
       externalEvidence = resolveManualRecipientEvidence(input.recipientEvidence, prospect, new Date(now));
       if (!externalEvidence) throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
     }
+    // Independently verified recipient evidence is not a CRM consent mutation.
+    if (!externalEvidence && prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
     const permissionBlockReason = !input.replyToMessageId && (!manualProspectEmail || externalEvidence) ? (externalEvidence
       ? salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
       : salesEmailPermissionBlockReason(prospect, new Date(now))) : null;
@@ -925,7 +926,7 @@ export async function sendDirectProspectOutreach(
       recipientPermissionVerified: input.channel === "email" && !replyToMessageId && (!manualProspectEmail || Boolean(externalEvidence)) && (externalEvidence
         ? !salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
         : !salesEmailPermissionBlockReason(prospect, new Date(now))),
-      ...(externalEvidence ? { permissionSource: "external_record", permissionConsentTimestamp: externalEvidence.consent_timestamp,
+      ...(externalEvidence ? { permissionSource: "external_record", permissionRecipient: externalEvidence.consent_email, permissionConsentTimestamp: externalEvidence.consent_timestamp,
         permissionEvidenceHash: createHash("sha256").update(JSON.stringify(externalEvidence)).digest("hex") } : {}),
       permissionVerifiedAt: input.channel === "email" && !replyToMessageId && (!manualProspectEmail || externalEvidence) ? now : null,
       observation: input.observation || null,
