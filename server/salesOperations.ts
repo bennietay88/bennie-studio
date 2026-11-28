@@ -729,8 +729,10 @@ export async function sendDirectProspectOutreach(
       externalEvidence = resolveManualRecipientEvidence(input.recipientEvidence, prospect, new Date(now));
       if (!externalEvidence) throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
     }
-    // Independently verified recipient evidence is not a CRM consent mutation.
-    if (!externalEvidence && prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
+    // A missing CRM flag is not itself an opt-out for manually reviewed sends.
+    // Preserve known withdrawals and leave automated/campaign eligibility intact.
+    if (!externalEvidence && prospect.marketing_consent === false && prospect.consent_timestamp) throw new Error("CONTACT_SUPPRESSED");
+    if (!manualProspectEmail && !externalEvidence && prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
     const permissionBlockReason = !input.replyToMessageId && (!manualProspectEmail || externalEvidence) ? (externalEvidence
       ? salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
       : salesEmailPermissionBlockReason(prospect, new Date(now))) : null;
