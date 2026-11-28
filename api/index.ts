@@ -1,4 +1,4 @@
-import { proposalExpired, proposalCharge, quoteSignature, approvedPilot, proposalCanShare, proposalPaymentMatches } from "../server/commercialProposal.js";
+import { proposalExpired, proposalCharge, quoteSignature, approvedPilot, proposalCanShare, proposalPaymentMatches, nextPilotStage } from "../server/commercialProposal.js";
 import { loadCommercialReadiness } from "../server/commercialReadiness.js";
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
@@ -2756,7 +2756,7 @@ async function startServer() {
             const paidAt = new Date().toISOString();
             const { data: currentProposal,error:proposalError } = await supabaseAdmin.from("proposals").select("*").eq("id", proposalId).maybeSingle();
             if(proposalError||!currentProposal)throw Error("Paid proposal not found");
-            if(currentProposal.config?.checkoutSessionId&&(!proposalPaymentMatches(currentProposal,session)||currentProposal.config.checkoutSessionId!==session.id))throw Error("Proposal payment mismatch");
+            if(currentProposal.config?.checkoutSessionId&&(!proposalPaymentMatches(currentProposal,session)||currentProposal.config.checkoutSessionId!==session.id||currentProposal.config?.acceptance?.quoteSignature!==quoteSignature(currentProposal,previewClaimSecret())||String(session.customer_details?.email||session.customer_email||"").toLowerCase()!==String(currentProposal.accepted_email||"").toLowerCase()))throw Error("Proposal payment mismatch");
             if(currentProposal.config?.pilotId&&!approvedPilot(currentProposal,previewClaimSecret()))throw Error("Pilot approval mismatch");
             const pilot=Boolean(currentProposal.config?.pilotId);
             const payment = {
@@ -7494,10 +7494,12 @@ async function startServer() {
         }
         const pageSize = 50;
         const offset = (requested - 1) * pageSize;
-        const { data, count, error } = await supabaseAdmin.from("sales_tasks")
+        const priority = req.query.priority === "high" ? "high" : null;
+        let taskQuery = supabaseAdmin.from("sales_tasks")
           .select("id,lead_id,prospect_id,title,task_type,priority,notes,status,due_at", { count: "exact" })
-          .eq("status", "open").lte("due_at", new Date().toISOString())
-          .order("due_at", { ascending: true }).order("id", { ascending: true })
+          .eq("status", "open").lte("due_at", new Date().toISOString());
+        if(priority)taskQuery=taskQuery.eq("priority",priority);
+        const {data,count,error}=await taskQuery.order("due_at", { ascending: true }).order("id", { ascending: true })
           .range(offset, offset + pageSize - 1);
         if (error) throw error;
         const rows = data || [];
@@ -7728,6 +7730,21 @@ async function startServer() {
     if(writeError||!updated)return res.status(409).json({error:"Draft changed; refresh and review again."});
     return res.json({success:true});
   });
+  app.post("/api/admin/proposals/:proposalId/fulfilment", authenticate, superAdminOnly, async(req:any,res:any)=>{
+    const body=validateBody(z.object({stage:z.enum(["access_confirmed","in_delivery","review","delivered","maintenance","closed"]),evidence:z.string().trim().min(10).max(1500)}).strict(),req,res);if(!body)return;
+    if(!UUID_SCHEMA.safeParse(req.params.proposalId).success)return res.status(400).json({error:"Invalid proposal ID"});
+    try{
+      const {data:row,error}=await supabaseAdmin.from("proposals").select("*").eq("id",req.params.proposalId).maybeSingle();
+      if(error||!row||!approvedPilot(row,previewClaimSecret())||!nextPilotStage(row,body.stage))return res.status(409).json({error:"Invalid pilot fulfilment transition"});
+      const stripe=await getStripe();const session=await stripe.checkout.sessions.retrieve(row.config.payment.stripeSessionId);
+      if(!proposalPaymentMatches(row,session))return res.status(409).json({error:"Payment could not be verified"});
+      if(row.config.pilotId==="website-care"&&body.stage!=="closed"){const subscription=await stripe.subscriptions.retrieve(String(session.subscription));if(subscription.status!=="active")return res.status(409).json({error:"Website Care subscription is not active; reconcile billing first."});}
+      const fulfilment={stage:body.stage,evidence:body.evidence,updatedAt:new Date().toISOString(),updatedBy:req.user.id};
+      const {data:updated,error:writeError}=await supabaseAdmin.from("proposals").update({config:{...row.config,fulfilment},updated_at:fulfilment.updatedAt}).eq("id",row.id).eq("updated_at",row.updated_at).select("id").maybeSingle();
+      if(writeError||!updated)return res.status(409).json({error:"Proposal changed; reload"});
+      await supabaseAdmin.from("proposal_events").insert({proposal_id:row.id,event_type:"pilot_fulfilment",metadata:fulfilment});return res.json({success:true,fulfilment});
+    }catch{return res.status(503).json({error:"Pilot fulfilment could not be verified"});}
+  });
   app.post("/api/admin/proposals/:proposalId/create-checkout", authenticate, async (req: any, res: any) => {
     if (!UUID_SCHEMA.safeParse(req.params.proposalId).success) return res.status(400).json({ error: "Invalid proposal ID" });
     try {
@@ -7739,6 +7756,7 @@ async function startServer() {
       const email=String(proposal.accepted_email||"").toLowerCase();
       if(!EMAIL_SCHEMA.safeParse(email).success)return res.status(409).json({error:"Customer acceptance email is missing."});
       const charge=proposalCharge(proposal);
+      if(proposal.config?.acceptance?.quoteSignature!==quoteSignature(proposal,previewClaimSecret()))return res.status(409).json({error:"Accepted quote has changed or is legacy. Obtain acceptance of a new quote."});
       if(!charge)return res.status(409).json({error:"Quote terms could not be verified. Issue a new quote."});
       const pilot=Boolean(proposal.config?.pilotId);
       if(pilot&&(process.env.COMMERCIAL_PILOT_PAYMENTS_ENABLED!=="true"||profile.role!=="super_admin"||!approvedPilot(proposal,previewClaimSecret())))return res.status(403).json({error:"Pilot payments are not approved."});
@@ -7762,7 +7780,7 @@ async function startServer() {
       const expiresAt=Math.min(Math.floor(Date.parse(String(proposal.expires_at||proposal.valid_until)+"T23:59:59Z")/1000),Math.floor(Date.now()/1000)+23*3600);
       if(expiresAt<Math.floor(Date.now()/1000)+1800)return res.status(409).json({error:"Quote expires too soon. Issue an updated quote."});
       const metadata={proposalId:proposal.id,leadId:proposal.lead_id||"",businessId:pilot?"":proposal.business_id||"",planId,productSlug:pilot?"":proposal.config.commercialProductSlug||"",market:"INTL",termMonths:String(charge.term),termsVersion:COMMERCIAL_TERMS_VERSION,type:pilot?"commercial_pilot":"proposal_subscription",pilotId:pilot?String(proposal.config.pilotId):""};
-      const lineItems:Stripe.Checkout.SessionCreateParams.LineItem[]=[];
+      const lineItems: any[]=[];
       if(charge.monthlyMinor)lineItems.push({price_data:{currency:"usd",product_data:{name:proposal.package_name},unit_amount:charge.monthlyMinor,recurring:{interval:"month"}},quantity:1});
       if(charge.setupMinor)lineItems.push({price_data:{currency:"usd",product_data:{name:proposal.package_name+(charge.monthlyMinor?" setup":"")},unit_amount:charge.setupMinor},quantity:1});
       const url=publicAppUrl()+"/proposal/"+proposal.proposal_token;
@@ -7786,7 +7804,7 @@ async function startServer() {
       try {
         const { data, error } = await supabaseAdmin
           .from("proposals")
-          .select("id,title,package_name,value,setup_fee,status,expires_at,scope,outcome,config,checkout_url,proposal_token,view_count,first_viewed_at,last_viewed_at,businesses(name),leads(name,raw_fields)")
+          .select("id,lead_id,business_id,title,package_name,value,amount,setup_fee,status,expires_at,valid_until,scope,outcome,config,checkout_url,proposal_token,view_count,first_viewed_at,last_viewed_at,businesses(name),leads(name)")
           .eq("proposal_token", req.params.token)
           .maybeSingle();
         if (error) throw error;
@@ -7831,7 +7849,7 @@ async function startServer() {
         if(proposal.config?.payment?.paidAt)return res.json({success:true,paid:true,checkoutUrl:null});
         if(proposal.status==="Accepted"&&proposal.config?.acceptance?.termsAcceptedAt){return res.json({success:true,checkoutUrl:proposal.checkout_url||null});}
         const acceptedAt = new Date().toISOString();
-        const acceptance = { termsAcceptedAt: acceptedAt, termsVersion: COMMERCIAL_TERMS_VERSION };
+        const acceptance = { termsAcceptedAt: acceptedAt, termsVersion: COMMERCIAL_TERMS_VERSION, quoteSignature:quoteSignature(proposal,previewClaimSecret()) };
         const { error: updateError } = await supabaseAdmin.from("proposals").update({
           status: "Accepted",
           accepted_at: acceptedAt,

@@ -1,3 +1,4 @@
+import { COMMERCIAL_PILOTS, INDUSTRY_SOLUTIONS,isSalesProduct } from "../lib/commercialExecution";
 import React from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
@@ -93,7 +94,10 @@ export default function BookDemo() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const saved = React.useMemo(readSavedContext, []);
-  const requestedProduct = searchParams.get("product") === "growth-partner" ? "growth-partner" : (saved.recommendedProduct || "managed-website");
+  const requested=searchParams.get("product");
+  const pilot=COMMERCIAL_PILOTS.find(p=>p.id===requested);
+  const solution=INDUSTRY_SOLUTIONS.find(p=>p.id===searchParams.get("solution"));
+  const requestedProduct = pilot?.id|| (isSalesProduct(requested)?requested:solution?.product||(isSalesProduct(saved.recommendedProduct)?saved.recommendedProduct:"managed-website"));
   const isGrowthPartner = requestedProduct === "growth-partner";
   const requestedMarket = searchParams.get("market");
   const initialMarket: RevenueMarket = requestedMarket === "MY" || requestedMarket === "SG" || requestedMarket === "GB" ? requestedMarket : requestedMarket === "INTL" ? "US" : (saved.market || "US");
@@ -180,7 +184,7 @@ export default function BookDemo() {
           industry: form.industry,
           country: form.market === "US" ? "INTL" : form.market,
           leadType: isGrowthPartner ? "growth_partner_consultation" : "managed_website_review",
-          formName: isGrowthPartner ? "Growth Partner Consultation" : "Managed Website Review",
+          formName: pilot?pilot.name+" interest":solution?solution.name+" consultation":isGrowthPartner ? "Growth Partner Consultation" : "Managed Website Review",
           sourcePage: "/book-demo",
           previewId: saved.previewId,
           market: form.market === "US" ? "INTL" : form.market,
@@ -198,6 +202,8 @@ export default function BookDemo() {
           message: [
             requestFollowUp ? "No available calendar slot; personal follow-up requested, not a confirmed booking." : `Preferred slot (awaiting confirmation): ${form.selectedSlot}`,
             `Market: ${REVENUE_MARKETS[form.market].label}`,
+            pilot?"Pilot interest: "+pilot.name+" — availability and individual quotation subject to approval.":null,
+            solution?"Industry solution: "+solution.name:null,
             saved.location ? `Location: ${saved.location}` : null,
             saved.service ? `Primary service: ${saved.service}` : null,
             saved.goal ? `Preview goal: ${saved.goal}` : null,
@@ -277,11 +283,12 @@ export default function BookDemo() {
               
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#1741ed]">Start with a conversation · Bennie Studio</p>
                <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.08] tracking-tight text-[#15191f] sm:text-5xl">
-                {isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
+                {pilot? "Discuss "+pilot.name+".":solution?solution.name:isGrowthPartner ? "Plan the next stage of your website growth." : "Let’s discuss the website your business needs."}
               </h1>
               <p className="mt-6 max-w-2xl text-lg font-semibold leading-8 text-[#526071]">
                 {isGrowthPartner ? "Bring your current website, traffic sources, enquiry baseline and growth priorities. We’ll scope conversion work, landing pages, local SEO expansion, experiments, implementation priorities and commercial fit." : "Tell us a little about your business and website needs. We’ll discuss the scope, what we can manage for you, and the costs before you decide. No payment and no account are required to enquire."}
               </p>
+              {(pilot||solution)&&<div className="mt-5 rounded-xl border bg-white p-4 text-sm leading-6">{pilot?<><p className="font-semibold">Expression of interest — no purchase or price commitment.</p><p>{pilot.exclusions} Scope and availability must be confirmed individually.</p></>:solution?.description}</div>}
               <div className="mt-8 grid gap-3 sm:grid-cols-2" aria-label="What to expect from the conversation">
                 {[
                   "A practical review of the current enquiry journey",

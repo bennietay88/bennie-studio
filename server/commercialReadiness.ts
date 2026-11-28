@@ -4,11 +4,11 @@ export async function loadCommercialReadiness(db:any,getStripe:()=>Promise<any>)
  const count=async(table:string,filter:(q:any)=>any=(q)=>q)=>{
   try{const {count,error}=await filter(db.from(table).select("*",{count:"exact",head:true}));return error?null:count??null;}catch{return null;}
  };
- const events=["pricing_view","preview_start","preview_started","submit_business_details","preview_generated","preview_checkout_started","checkout_started","preview_checkout_failed","preview_checkout_redirected","platform_lead_submitted","consultation_request_saved"];
+ const events=["pricing_view","preview_start","preview_started","preview_generation_failed","submit_business_details","preview_generated","preview_checkout_started","checkout_started","preview_checkout_failed","preview_checkout_redirected","platform_lead_submitted","consultation_request_saved"];
  const [eventCounts,openTasks,unreconciled,newLeads,bookings,orders,paidOrders,contracts,affiliates,referrals,invoiceResult,priceResult]=await Promise.all([
   Promise.all(events.map(async event=>[event,await count("tracking_events",q=>q.eq("event_type",event).is("business_id",null).gte("created_at",since))] as const)),
   count("sales_tasks",q=>q.eq("status","open")),
-  count("sales_tasks",q=>q.eq("status","open").eq("task_type","reply_reconciliation")),
+  count("sales_messages",q=>q.eq("direction","inbound").is("classification",null)),
   count("leads",q=>q.eq("status","new")),
   count("sales_call_bookings"),
   count("orders"),

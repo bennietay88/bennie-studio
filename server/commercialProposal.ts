@@ -31,3 +31,11 @@ export function proposalPaymentMatches(row:any,session:any){
  const charge=proposalCharge(row);
  return Boolean(charge&&session.payment_status==="paid"&&session.status==="complete"&&session.currency==="usd"&&session.amount_total===charge.monthlyMinor+charge.setupMinor&&session.metadata?.proposalId===row.id&&session.mode===(charge.monthlyMinor>0?"subscription":"payment"));
 }
+
+export const PILOT_TRANSITIONS:Record<string,readonly string[]>={paid:["access_confirmed"],access_confirmed:["in_delivery"],in_delivery:["review"],review:["delivered","in_delivery"],delivered:["maintenance","closed"],maintenance:["closed"],closed:[]};
+export function nextPilotStage(row:any,next:string){
+ const current=String(row.config?.fulfilment?.stage||"paid");
+ if(!row.config?.pilotId||!row.config?.payment?.paidAt||!row.config?.payment?.stripeSessionId)return false;
+ if(next==="maintenance"&&row.config.pilotId!=="website-care")return false;
+ return (PILOT_TRANSITIONS[current]||[]).includes(next);
+}

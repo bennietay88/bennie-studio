@@ -26,6 +26,9 @@ function dueAge(iso: string, now: number) {
 
 export function OverdueSalesTasks() {
   const [page, setPage] = React.useState(1);
+  const [highOnly,setHighOnly]=React.useState(false);
+  const [updating,setUpdating]=React.useState("");
+  const resolveTask=async(id:string,status:"completed"|"dismissed")=>{if(!window.confirm(status==="completed"?"Confirm the actual task was completed? No message is sent.":"Dismiss this task after checking the CRM record?"))return;setUpdating(id);try{const {data:{session}}=await supabase.auth.getSession();const r=await fetch("/api/admin/sales-tasks/"+id,{method:"PATCH",headers:{Authorization:"Bearer "+session?.access_token,"Content-Type":"application/json"},body:JSON.stringify({status})});if(!r.ok)throw Error("Task could not be updated");setPage(1);setRefresh(n=>n+1);}catch(e:any){setError(e.message);}finally{setUpdating("");}};
   const [result, setResult] = React.useState<{ tasks: Task[]; total: number; pageSize: number } | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -38,7 +41,7 @@ export function OverdueSalesTasks() {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Your session expired. Sign in again.");
-      const response = await fetch("/api/admin/revenue-health/overdue-tasks?page=" + page, {
+      const response = await fetch("/api/admin/revenue-health/overdue-tasks?page=" + page+(highOnly?"&priority=high":""), {
         headers: { Authorization: "Bearer " + session.access_token },
         cache: "no-store",
       });
@@ -48,7 +51,7 @@ export function OverdueSalesTasks() {
     })().catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "Unable to load overdue tasks."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [page, refresh]);
+  }, [page, refresh,highOnly]);
 
   const now = Date.now();
   const totalPages = Math.max(1, Math.ceil((result?.total || 0) / (result?.pageSize || 50)));
@@ -65,7 +68,7 @@ export function OverdueSalesTasks() {
       <CardContent className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="font-semibold text-slate-800"><CalendarClock className="mr-2 inline h-5 w-5 text-rose-600" />{result?.total ?? "—"} overdue task{result?.total === 1 ? "" : "s"}</p>
-          <p className="text-xs text-slate-500">Showing oldest due first · {result ? `Page ${page} of ${totalPages}` : "Loading"}</p>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={highOnly} onChange={e=>{setHighOnly(e.target.checked);setPage(1);}}/>High priority only</label><p className="text-xs text-slate-500">Showing oldest due first · {result ? `Page ${page} of ${totalPages}` : "Loading"}</p>
         </div>
         {error && <p role="alert" className="mt-4 text-sm font-semibold text-rose-700">{error}</p>}
         {loading && <div role="status" className="flex items-center gap-2 py-12 text-sm text-slate-600"><Loader2 className="h-5 w-5 animate-spin" />Loading overdue tasks…</div>}
@@ -88,7 +91,7 @@ export function OverdueSalesTasks() {
                 <p className="mt-2 font-semibold text-slate-900">{task.title || "Follow up"} · {label}</p>
                 <p className="mt-1 text-sm text-slate-600">{task.notes || task.lead?.automation_next_action || "Review the record and plan the next action."}</p>
               </div>
-              {href ? <Link to={href} className="inline-flex shrink-0 items-center rounded-lg border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Open CRM record <ChevronRight className="ml-1.5 h-4 w-4" /></Link> : <span className="text-xs text-slate-500">No CRM link attached</span>}
+              <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={Boolean(updating)} onClick={()=>void resolveTask(task.id,"completed")}>Complete</Button><Button variant="ghost" disabled={Boolean(updating)} onClick={()=>void resolveTask(task.id,"dismissed")}>Dismiss</Button>{href ? <Link to={href} className="inline-flex shrink-0 items-center rounded-lg border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Open CRM record <ChevronRight className="ml-1.5 h-4 w-4" /></Link> : <span className="text-xs text-slate-500">No CRM link attached</span>}</div>
             </li>;
           })}
         </ol>}
