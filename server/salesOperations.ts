@@ -926,7 +926,7 @@ export async function sendDirectProspectOutreach(
       recipientPermissionVerified: input.channel === "email" && !replyToMessageId && (!manualProspectEmail || Boolean(externalEvidence)) && (externalEvidence
         ? !salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
         : !salesEmailPermissionBlockReason(prospect, new Date(now))),
-      ...(externalEvidence ? { permissionSource: "external_record", permissionConsentTimestamp: externalEvidence.consent_timestamp,
+      ...(externalEvidence ? { permissionSource: "external_record", permissionRecipient: externalEvidence.consent_email, permissionConsentTimestamp: externalEvidence.consent_timestamp,
         permissionEvidenceHash: createHash("sha256").update(JSON.stringify(externalEvidence)).digest("hex") } : {}),
       permissionVerifiedAt: input.channel === "email" && !replyToMessageId && (!manualProspectEmail || externalEvidence) ? now : null,
       observation: input.observation || null,
