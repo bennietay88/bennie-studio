@@ -1,5 +1,5 @@
 import { PILOT_SETTINGS_ID, readPilotControls, signPilotRelease } from "../server/commercialPilotControls.js";
-import { proposalExpired, proposalCharge, quoteSignature, approvedPilot, proposalCanShare, proposalPaymentMatches, nextPilotStage } from "../server/commercialProposal.js";
+import { collectedCheckout, proposalExpired, proposalCharge, quoteSignature, approvedPilot, proposalCanShare, proposalPaymentMatches, nextPilotStage } from "../server/commercialProposal.js";
 import { loadCommercialReadiness } from "../server/commercialReadiness.js";
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
@@ -2697,7 +2697,7 @@ async function startServer() {
           const publicLeadId = session.metadata?.leadId;
           const publicPreviewId = session.metadata?.previewId;
 
-          if((publicOrder||proposalId)&&session.payment_status!=="paid"&&session.payment_status!=="no_payment_required")break;
+          if ((publicOrder || proposalId) && !collectedCheckout(session)) break;
           if (publicOrder) {
             const paidAt = new Date().toISOString();
             if (publicPreviewId && session.payment_status === "paid") {
@@ -2757,7 +2757,14 @@ async function startServer() {
             const paidAt = new Date().toISOString();
             const { data: currentProposal,error:proposalError } = await supabaseAdmin.from("proposals").select("*").eq("id", proposalId).maybeSingle();
             if(proposalError||!currentProposal)throw Error("Paid proposal not found");
-            if(currentProposal.config?.checkoutSessionId&&(!proposalPaymentMatches(currentProposal,session)||currentProposal.config.checkoutSessionId!==session.id||currentProposal.config?.acceptance?.quoteSignature!==quoteSignature(currentProposal,previewClaimSecret())||String(session.customer_details?.email||session.customer_email||"").toLowerCase()!==String(currentProposal.accepted_email||"").toLowerCase()))throw Error("Proposal payment mismatch");
+            if (!currentProposal.config?.checkoutSessionId) throw Error("Legacy proposal payment requires finance reconciliation");
+            const payerEmail = String(session.customer_details?.email || session.customer_email || "").toLowerCase();
+            if (!proposalPaymentMatches(currentProposal, session)
+              || currentProposal.config.checkoutSessionId !== session.id
+              || currentProposal.config.acceptance?.quoteSignature !== quoteSignature(currentProposal, previewClaimSecret())
+              || !payerEmail || payerEmail !== String(currentProposal.accepted_email || "").toLowerCase()) {
+              throw Error("Proposal payment mismatch");
+            }
             if(currentProposal.config?.pilotId&&!approvedPilot(currentProposal,previewClaimSecret()))throw Error("Pilot approval mismatch");
             const pilot=Boolean(currentProposal.config?.pilotId);
             const payment = {
@@ -2768,8 +2775,6 @@ async function startServer() {
             };
             const { data: paidProposal } = await supabaseAdmin.from("proposals").update({
               status: "Accepted",
-              accepted_at: paidAt,
-              accepted_email: session.customer_details?.email || session.customer_email || undefined,
               updated_at: paidAt,
               config: { ...(currentProposal?.config || {}), payment },
             }).eq("id", proposalId).select("id,lead_id,business_id,config").maybeSingle();
@@ -12443,8 +12448,7 @@ async function startServer() {
         if (session.metadata?.publicOrder !== "1" || session.metadata?.previewId !== previewId) {
           return res.status(403).json({ error: "Checkout confirmation does not match this preview." });
         }
-        const paid = ["paid", "no_payment_required"].includes(String(session.payment_status || ""));
-        const complete = session.status === "complete" && paid;
+        const complete = collectedCheckout(session);
         if (!complete) {
           return res.json({ status: session.status || "open", paymentStatus: session.payment_status || "unpaid", complete: false });
         }
@@ -12500,8 +12504,7 @@ async function startServer() {
         const stripe = await getStripe();
         const session = await stripe.checkout.sessions.retrieve(claim.sessionId);
         if (
-          session.status !== "complete"
-          || !["paid", "no_payment_required"].includes(String(session.payment_status || ""))
+          !collectedCheckout(session)
           || session.metadata?.businessId !== claim.businessId
           || session.metadata?.previewId !== claim.previewId
           || session.metadata?.publicOrder !== "1"
