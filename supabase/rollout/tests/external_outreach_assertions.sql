@@ -23,8 +23,15 @@ $$;
 CREATE FUNCTION public.test_evidence() RETURNS jsonb LANGUAGE sql AS $$
 SELECT jsonb_build_object('directSend',true,'recipientPermissionVerified',true,'permissionSource','external_record','permissionRecipient','fixture@example.test','permissionEvidenceHash',repeat('a',64),'actorId','fixture-admin','permissionConsentTimestamp','2026-08-25T10:00:00Z')
 $$;
+CREATE FUNCTION public.test_manual() RETURNS jsonb LANGUAGE sql AS $
+SELECT jsonb_build_object('directSend',true,'manualProspectEmail',true,'actorId','fixture-admin','templateId','day3_neutral')
+$;
 SET LOCAL ROLE service_role;
 SELECT public.test_expect_rejection('{}');
+SELECT public.test_external_message(public.test_manual());
+SELECT public.test_expect_rejection(public.test_manual(),'other@example.test');
+SELECT public.test_expect_rejection(public.test_manual(),'fixture@example.test','queued');
+SELECT public.test_expect_rejection(public.test_manual() || '{"templateId":"automated-campaign"}');
 SELECT public.test_expect_rejection(public.test_evidence(),'other@example.test');
 SELECT public.test_expect_rejection(public.test_evidence(),'fixture@example.test','queued');
 SELECT public.test_expect_rejection(public.test_evidence() || '{"permissionConsentTimestamp":"2999-01-01T00:00:00Z"}');
@@ -35,19 +42,23 @@ END $$;
 RESET ROLE;
 SET LOCAL ROLE authenticated;
 SELECT public.test_expect_rejection(public.test_evidence());
+SELECT public.test_expect_rejection(public.test_manual());
 RESET ROLE;
 UPDATE public.prospects SET consent_timestamp='2026-09-01T00:00:00Z';
 SET LOCAL ROLE service_role;
+SELECT public.test_expect_rejection(public.test_manual());
 SELECT public.test_expect_rejection(public.test_evidence());
 RESET ROLE;
 UPDATE public.prospects SET consent_timestamp=null;
 INSERT INTO public.sales_suppressions VALUES('fixture@example.test','email');
 SET LOCAL ROLE service_role;
 SELECT public.test_expect_rejection(public.test_evidence(),'fixture@example.test','sending','recipient is suppressed');
+SELECT public.test_expect_rejection(public.test_manual(),'fixture@example.test','sending','recipient is suppressed');
 RESET ROLE;
 DELETE FROM public.sales_suppressions;
 UPDATE public.prospects SET archived_at=now();
 SET LOCAL ROLE service_role;
+SELECT public.test_expect_rejection(public.test_manual());
 SELECT public.test_expect_rejection(public.test_evidence());
 RESET ROLE;
 UPDATE public.prospects SET archived_at=null,marketing_consent=true;
