@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 test("buyer comparison guides are complete, linked and avoid unsupported competitor claims", () => {
-  const guides = readFileSync("src/components/ComparisonGuidePage.tsx", "utf8");
+  const guides = readFileSync("src/content/comparisonGuides.ts", "utf8") + readFileSync("src/components/ComparisonGuidePage.tsx", "utf8");
   const app = readFileSync("src/App.tsx", "utf8");
   const footer = readFileSync("src/components/PublicSiteChrome.tsx", "utf8");
   assert.match(guides, /diy:\s*\{/);

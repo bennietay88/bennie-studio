@@ -1,3 +1,4 @@
+import { publicRouteHtml } from "./scripts/public-route-html";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
@@ -23,6 +24,7 @@ export default defineConfig(({ mode }) => {
           return normalized === code ? null : { code: normalized, map: null };
         },
       },
+      publicRouteHtml(),
       react(),
       tailwindcss(),
     ],

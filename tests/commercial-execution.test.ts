@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {verifiedProposalTerms,checkoutFailureCategory,proposalIsPaid,COMMERCIAL_PILOTS} from "../src/lib/commercialExecution";
-import {proposalCharge,proposalCanShare,quoteSignature,approvedPilot,proposalPaymentMatches,nextPilotStage} from "../server/commercialProposal";
+import {collectedCheckout,proposalCharge,proposalCanShare,quoteSignature,approvedPilot,proposalPaymentMatches,nextPilotStage} from "../server/commercialProposal";
 const secret="fixture-secret";
 const base={id:"quote-1",lead_id:"lead",business_id:null,title:"Sprint",package_name:"Conversion Sprint",value:0,amount:0,setup_fee:199,expires_at:"2099-12-31",scope:["agreed"],outcome:"review",status:"Sent",config:{currency:"USD",commitmentMonths:0,pilotId:"conversion-sprint",billing:"one_time",scopeNotes:"Reviewed access and scope"}};
 test("pilot approval binds the exact commercial quote",()=>{
@@ -48,4 +48,13 @@ test("pilot release defaults off and signed decision cannot be modified",()=>{
  assert.equal(readPilotRelease("website-care",signed,secret),null);
  assert.equal(readPilotRelease("conversion-sprint",{...signed,terms:"Different terms without approval"},secret),null);
  assert.equal(readPilotRelease("conversion-sprint",null,secret),null);
+});
+
+test("commercial checkout requires evidence of a positive collected payment", () => {
+  const paid = { status: "complete", payment_status: "paid", amount_total: 1900 };
+  assert.equal(collectedCheckout(paid), true);
+  for (const patch of [{ status: "open" }, { payment_status: "no_payment_required" },
+    { payment_status: "unpaid" }, { amount_total: 0 }, { amount_total: null }]) {
+    assert.equal(collectedCheckout({ ...paid, ...patch }), false);
+  }
 });

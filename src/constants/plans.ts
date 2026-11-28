@@ -1,4 +1,4 @@
-import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing";
+import { COMMERCIAL_DEFAULT_COMMITMENT_MONTHS, COMMERCIAL_FALLBACK_PRODUCTS, getCommercialPrice, type CommercialMarket } from "../lib/commercialPricing.js";
 
 export interface Plan {
   id: string;

@@ -15,7 +15,7 @@ export default function PublicResourceArticlePage() {
 
   return (
     <div className="brand-public min-h-screen bg-[#f8f8f5] text-[#141821]">
-      <Helmet><title>{article.title} | Bennie Studio</title><meta name="description" content={article.excerpt} /></Helmet>
+      <Helmet><title>{article.title} | Bennie Studio</title><meta name="description" content={article.excerpt} /><link rel="canonical" href={`https://app.bennietay.com/resources/${article.slug}`} /></Helmet>
       <PublicSiteHeader />
       <main id="main-content">
         <section className="border-b border-[#dce2e8] bg-[#f8f8f5]">
