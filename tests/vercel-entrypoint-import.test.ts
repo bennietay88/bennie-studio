@@ -39,6 +39,28 @@ test("Vercel-style emitted monthly report modules resolve their ESM imports", as
   }
 });
 
+test("the emitted commercial plan catalogue loads in native Node ESM", async () => {
+  const outputRoot = await mkdtemp(path.join(path.resolve("/tmp"), "bennie-plan-esm-"));
+  try {
+    await build({
+      entryPoints: ["src/constants/plans.ts", "src/lib/commercialPricing.ts"],
+      outbase: "src",
+      outdir: outputRoot,
+      bundle: false,
+      format: "esm",
+      platform: "node",
+    });
+    await writeFile(path.join(outputRoot, "package.json"), JSON.stringify({ type: "module" }));
+    const catalogue = pathToFileURL(path.join(outputRoot, "constants/plans.js")).href;
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e",
+      `const { PLANS } = await import(${JSON.stringify(catalogue)}); if (!PLANS.length) process.exit(1);`],
+      { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+  } finally {
+    await rm(outputRoot, { recursive: true, force: true });
+  }
+});
+
 test("the actual API entrypoint imports under Node 24 with preview-like missing Supabase config", async () => {
   const cwd = await mkdtemp(path.join(path.resolve("/tmp"), "bennie-api-entrypoint-"));
   try {
