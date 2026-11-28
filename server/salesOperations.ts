@@ -724,12 +724,13 @@ export async function sendDirectProspectOutreach(
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
     }
-    if (prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
     // Check existing recipient evidence server-side, not a repeated UI attestation.
     if (!input.replyToMessageId && input.recipientEvidence !== undefined) {
       externalEvidence = resolveManualRecipientEvidence(input.recipientEvidence, prospect, new Date(now));
       if (!externalEvidence) throw new Error("CONTACT_PERMISSION_NOT_VERIFIED");
     }
+    // Independently verified recipient evidence is not a CRM consent mutation.
+    if (!externalEvidence && prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
     const permissionBlockReason = !input.replyToMessageId && (!manualProspectEmail || externalEvidence) ? (externalEvidence
       ? salesEmailPermissionBlockReason({ ...prospect, ...externalEvidence }, new Date(now))
       : salesEmailPermissionBlockReason(prospect, new Date(now))) : null;
