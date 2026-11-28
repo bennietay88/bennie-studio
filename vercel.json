@@ -124,6 +124,14 @@
       "dest": "/case-studies/showcase/$1/index.html"
     },
     {
+      "src": "^/(managed-website-vs-diy|managed-website-vs-agency|pay-monthly-websites|website-subscription-service)/?$",
+      "dest": "/$1/index.html"
+    },
+    {
+      "src": "^/resources/(plan-a-website-that-gets-results|website-elements-that-build-trust|website-copy-that-converts|measure-website-success|mobile-first-website-design|what-a-redesign-should-improve|website-launch-checklist|turn-more-visitors-into-customers|when-to-redesign-your-website)/?$",
+      "dest": "/resources/$1/index.html"
+    },
+    {
       "handle": "filesystem"
     },
     {
