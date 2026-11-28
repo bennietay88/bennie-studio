@@ -147,3 +147,60 @@
  .brand-public.c27-cookie-present {padding-bottom:15rem}
  .brand-public .c27-cookie-notice {bottom:9px;left:9px;right:9px;padding:1rem;max-height:56vh}
 }
+
+
+/* Desktop first-fold fit: the signature stage is a complete composition, not
+   a fixed-height viewport inside another viewport. Keep all controls in flow,
+   allow the sample website to reflow, and leave the mobile stack untouched. */
+@media (min-width:1061px) {
+  .brand-public .sfn-home .sfn-hero .c26-hero-grid {
+    padding-block:clamp(1.25rem,3.1svh,3.5rem)!important;
+    gap:clamp(1.5rem,3.5vw,3.5rem)!important;
+  }
+  .brand-public .sfn-home .sfn-hero .c26-hero-copy {padding:.5rem 0!important}
+  .brand-public .sfn-home .sfn-hero .sfn-signature {align-self:center;width:100%;max-width:100%;margin:0}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-top {padding:.7rem 1rem;font-size:11px;line-height:1.4}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-canvas {
+    min-height:clamp(280px,43svh,460px);
+    padding:clamp(.85rem,2svh,2rem) clamp(.85rem,2.1vw,2.25rem);
+  }
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window {
+    width:100%;max-width:620px;padding:6px 6px 0;transform:none!important;
+  }
+  .brand-public .sfn-home .sfn-hero .sfn-signature-browser {padding:.45rem .6rem .55rem;font-size:10px}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept {min-height:0}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-nav {padding:.65rem .9rem;gap:.5rem}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-brand {font-size:clamp(12px,1.05vw,16px)}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-menu {font-size:11px}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-body {
+    min-height:clamp(175px,28svh,290px);
+    grid-template-columns:minmax(0,1.18fr) minmax(0,.82fr);
+  }
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-photo {min-height:0}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-copy {
+    padding:clamp(.75rem,1.6svh,1.45rem);gap:.5rem;
+  }
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-title {
+    font-size:clamp(1.4rem,min(2.05vw,3.7svh),2.45rem);
+  }
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-eyebrow {font-size:10px;line-height:1.3}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-description {font-size:clamp(12px,1vw,15px);line-height:1.45}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-cta {padding:.5rem .7rem;min-height:36px;font-size:12px;gap:.4rem}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-window .sfn-concept-footer {padding:.5rem .9rem;font-size:10px;gap:.5rem;line-height:1.4}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-stamp {width:68px;right:.6rem;bottom:.6rem;font-size:8px}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-bottom {
+    grid-template-columns:minmax(0,1fr) auto;gap:.9rem;padding:clamp(.85rem,1.7svh,1.4rem);
+    align-items:center;
+  }
+  .brand-public .sfn-home .sfn-hero .sfn-signature-story strong {font-size:clamp(1.35rem,1.8vw,1.8rem);margin:.35rem 0;line-height:1.15}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-story .sfn-signature-description {font-size:13px;line-height:1.45}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-story a {margin-top:.6rem;line-height:1.4}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-controls {flex-direction:column;align-items:flex-end;gap:.4rem}
+}
+@media (min-width:1061px) and (max-height:780px) {
+  .brand-public .sfn-home .sfn-hero h1 {font-size:clamp(2.85rem,min(4.6vw,9svh),5.5rem)!important;margin:.8rem 0 1rem!important}
+  .brand-public .sfn-home .sfn-hero .c26-intro {line-height:1.55!important}
+  .brand-public .sfn-home .sfn-hero .c26-actions {margin-top:1.1rem!important;gap:.8rem!important}
+  .brand-public .sfn-home .sfn-hero .c26-assurances {margin-top:1rem!important;padding-top:.8rem!important}
+  .brand-public .sfn-home .sfn-hero .sfn-signature-canvas {min-height:0}
+}
