@@ -1,7 +1,9 @@
+import { SALES_PRODUCT_SLUGS, COMMERCIAL_PILOTS, verifiedProposalTerms, proposalMoney, proposalIsPaid, isSalesProduct } from "../../lib/commercialExecution";
+import { PLAN_DELIVERY_STANDARDS } from "../../constants/deliveryStandards";
 import React from "react";
 import { CheckCircle2, CircleDollarSign, Clock3, Copy, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { getOfferForMarket, REVENUE_MARKETS, type RevenueMarket } from "../../constants/revenueOffer";
+import { REVENUE_MARKETS, type RevenueMarket } from "../../constants/revenueOffer";
 import { supabase } from "../../lib/supabase";
 import { formatCommercialMoney, getCommercialPrice, type CommercialMarket } from "../../lib/commercialPricing";
 import { usePublicCommercialPricing } from "../../hooks/usePublicCommercialPricing";
@@ -22,7 +24,7 @@ export function ProposalsDeals() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Growth Partner proposal", market: "MY" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
+  const [form, setForm] = React.useState({ target: typeof window !== "undefined" && sessionStorage.getItem("bts_proposal_lead_id") ? `lead:${sessionStorage.getItem("bts_proposal_lead_id")}` : "", title: "Website Growth proposal", product: "website-growth" as string, pilotPrice: "", scopeNotes: "", market: "MY" as RevenueMarket, expiresAt: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10), checkoutUrl: "" });
 
   const fetchData = React.useCallback(async () => {
     setLoading(true);
@@ -44,65 +46,42 @@ export function ProposalsDeals() {
   // Target country is retained for lead context, but new proposal amounts use USD.
   const commercialMarket: CommercialMarket = "INTL";
   const { products: liveCommercialProducts } = usePublicCommercialPricing(commercialMarket);
-  const baseOffer = getOfferForMarket(form.market);
-  const liveGrowthPartner = liveCommercialProducts.find((product) => product.slug === "growth-partner");
-  const livePrice = liveGrowthPartner ? getCommercialPrice(liveGrowthPartner, commercialMarket) : null;
-  const liveMonthly = Number(livePrice?.monthlyPrice ?? baseOffer.monthlyPrice);
-  const liveSetup = Number(livePrice?.setupFee ?? baseOffer.setupFee);
-  const liveCommitmentMonths = Number(livePrice?.minimumTermMonths ?? baseOffer.commitmentMonths);
-  const liveCurrency = livePrice?.currency || baseOffer.prices[form.market].currency;
-  const offer = {
-    ...baseOffer,
-    monthlyPrice: liveMonthly,
-    setupFee: liveSetup,
-    commitmentMonths: liveCommitmentMonths,
-    monthlyLabel: formatCommercialMoney(liveMonthly, liveCurrency),
-    setupLabel: formatCommercialMoney(liveSetup, liveCurrency),
-  };
-  const active = proposals.filter((proposal) => !["Declined", "Expired"].includes(proposal.status));
-  const accepted = proposals.filter((proposal) => proposal.status === "Accepted");
-  const stats = {
-    pipelineMrr: active.reduce((sum, proposal) => sum + Number(proposal.value || proposal.amount || 0), 0),
-    acceptedMrr: accepted.reduce((sum, proposal) => sum + Number(proposal.value || proposal.amount || 0), 0),
-    pendingSetup: active.filter((proposal) => proposal.status !== "Accepted").reduce((sum, proposal) => sum + Number(proposal.setup_fee || 0), 0),
-  };
-
+  const currentProduct=liveCommercialProducts.find(p=>p.slug===form.product);
+  const liveTerms=verifiedProposalTerms(currentProduct?getCommercialPrice(currentProduct,commercialMarket):null);
+  const pilot=COMMERCIAL_PILOTS.find(p=>p.id===form.product);
+  const active=proposals.filter(p=>["Draft","Sent","Accepted"].includes(p.status)&&!proposalIsPaid(p.config));
+  const accepted=proposals.filter(p=>p.status==="Accepted"&&!proposalIsPaid(p.config));
+  const paid=proposals.filter(p=>proposalIsPaid(p.config));
+  const money=(p:any,amount:unknown)=>proposalMoney(amount,p.config?.currency||(p.config?.market==="MY"?"MYR":p.config?.market==="SG"?"SGD":p.config?.market==="GB"?"GBP":"USD"));
   const createProposal = async () => {
     if (!form.target || !form.title.trim()) return toast.error("Choose a lead or customer and add a proposal title.");
     setSaving(true);
     try {
-      const pricingResponse = await fetch(`/api/public/pricing?market=${commercialMarket}`, { cache: "no-store" });
-      const pricingPayload = await pricingResponse.json().catch(() => ({}));
-      if (!pricingResponse.ok) throw new Error(pricingPayload.error || "Current commercial terms could not be loaded.");
-      const currentProduct = Array.isArray(pricingPayload.products)
-        ? pricingPayload.products.find((product: any) => product.slug === "growth-partner")
-        : null;
-      const currentPrice = currentProduct?.price;
-      if (!currentProduct || !currentPrice) throw new Error("Growth Partner is not configured for this market.");
-      const proposalMonthly = Number(currentPrice.monthlyPrice || 0);
-      const proposalSetup = Number(currentPrice.setupFee || 0);
-      const proposalTermMonths = Number(currentPrice.minimumTermMonths || 3);
-      const proposalCurrency = currentPrice.currency || liveCurrency;
-      const [kind, id] = form.target.split(":");
-      const payload = {
-        lead_id: kind === "lead" ? id : null,
-        business_id: kind === "business" ? id : null,
-        title: form.title.trim(),
-        package_name: currentProduct.name || offer.name,
-        value: proposalMonthly,
-        amount: proposalMonthly,
-        setup_fee: proposalSetup,
-        status: "Draft",
-        expires_at: form.expiresAt,
-        valid_until: form.expiresAt,
-        scope: offer.included,
-        outcome: offer.description,
-        checkout_url: form.checkoutUrl.trim() || null,
-        config: { offerId: offer.id, planId: offer.planId, commercialProductSlug: "growth-partner", market: form.market, currency: proposalCurrency, commitmentMonths: proposalTermMonths, package_name: currentProduct.name || offer.name, setup_fee: proposalSetup, scope: offer.included, outcome: currentProduct.description || offer.description },
-      };
+      const [kind,id]=form.target.split(":");
+      if(!form.expiresAt||form.expiresAt<new Date().toISOString().slice(0,10))throw Error("Choose a future proposal expiry.");
+      let terms:{monthly:number;setup:number;term:number;currency:"USD"},name:string,scope:string[],outcome:string,config:Record<string,unknown>;
+      if(pilot){
+        const amount=Number(form.pilotPrice);
+        if(!form.scopeNotes.trim()||!Number.isFinite(amount)||amount<=0||amount>100000)throw Error("Enter a reviewed positive USD quote and compatibility/scope notes.");
+        terms={monthly:pilot.billing==="monthly"?amount:0,setup:pilot.billing==="monthly"?0:amount,term:0,currency:"USD"};
+        name=pilot.name;scope=[...pilot.scope,form.scopeNotes.trim(),pilot.exclusions];outcome="Individually scoped service pilot. No automatic activation.";
+        config={pilotId:pilot.id,billing:pilot.billing==="monthly"?"monthly":"one_time",approvalRequired:true,approvalState:"draft",scopeNotes:form.scopeNotes.trim()};
+      }else{
+        if(!isSalesProduct(form.product))throw Error("Select a configured product.");
+        const response=await fetch("/api/public/pricing?market=INTL",{cache:"no-store"});
+        const payload=await response.json().catch(()=>({}));
+        const product=payload.products?.find((item:any)=>item.slug===form.product);
+        const checked=verifiedProposalTerms(product?.price);
+        if(!response.ok||!checked)throw Error("Current USD commercial terms are unavailable.");
+        terms=checked;name=product.name;outcome=product.description;
+        const standard=PLAN_DELIVERY_STANDARDS[form.product];
+        scope=[standard.pages,standard.revisions,standard.updates,standard.landingPages,standard.seo,standard.strategy];
+        config={commercialProductSlug:form.product,billing:"monthly"};
+      }
+      const payload={lead_id:kind==="lead"?id:null,business_id:kind==="business"?id:null,title:form.title.trim(),package_name:name,value:terms.monthly,amount:terms.monthly,setup_fee:terms.setup,status:"Draft",expires_at:form.expiresAt,valid_until:form.expiresAt,scope,outcome,checkout_url:null,config:{...config,market:form.market,currency:terms.currency,commitmentMonths:terms.term,scope,outcome}};
       const { data, error } = await supabase.from("proposals").insert(payload).select("*, businesses(name), leads(name,email)").single();
       if (error) throw error;
-      if (kind === "lead") await supabase.from("leads").update({ status: "proposal", automation_next_action: "Send proposal and schedule follow-up", next_follow_up_at: new Date(Date.now() + 2 * 86400000).toISOString() }).eq("id", id);
+      if (kind === "lead") await supabase.from("leads").update({ status: "proposal", automation_next_action: "Review draft before sharing", next_follow_up_at: new Date(Date.now() + 2 * 86400000).toISOString() }).eq("id", id);
       setProposals((current) => [data, ...current]);
       setOpen(false);
       toast.success("Proposal created. Review it before sharing.");
@@ -114,6 +93,9 @@ export function ProposalsDeals() {
   };
 
   const updateStatus = async (proposal: any, status: string) => {
+    if(proposalIsPaid(proposal.config)||proposal.checkout_url)return toast.error("A payment-linked or paid proposal requires manual finance review before changing status.");
+    if(status==="Accepted")return toast.error("Acceptance must be recorded through the customer link; it is not payment.");
+    if(status==="Sent"&&proposal.config?.pilotId)return toast.error("Pilot quotes require commercial approval before sharing.");
     let lossReason = "";
     if (status === "Declined") {
       lossReason = window.prompt("Why was this proposal lost? Record the actual reason before closing it.", proposal.config?.lossReason || "")?.trim() || "";
@@ -131,26 +113,24 @@ export function ProposalsDeals() {
     const { data, error } = await supabase.from("proposals").update(updates).eq("id", proposal.id).select("*, businesses(name), leads(name,email)").single();
     if (error) return toast.error(error.message);
     setProposals((current) => current.map((item) => item.id === proposal.id ? data : item));
-    const leadStatus = status === "Accepted" ? "won" : status === "Declined" ? "lost" : status === "Sent" ? "proposal" : null;
+    const leadStatus = status === "Declined" ? "lost" : status === "Sent" ? "proposal" : null;
     if (proposal.lead_id && leadStatus) await supabase.from("leads").update({ status: leadStatus }).eq("id", proposal.lead_id);
     if (proposal.lead_id && status === "Sent") {
       await supabase.from("sales_tasks").insert({ lead_id: proposal.lead_id, proposal_id: proposal.id, title: "Review proposal engagement and follow up personally", task_type: "proposal_follow_up", priority: "high", due_at: new Date(Date.now() + 2 * 86400000).toISOString(), metadata: { proposalToken: proposal.proposal_token } });
-      const { data: sequence } = await supabase.from("outreach_sequences").select("id").eq("name", "Proposal follow-up").eq("status", "active").maybeSingle();
-      if (sequence) {
-        const { data: { session } } = await supabase.auth.getSession();
-        await fetch("/api/admin/sales-automation/enroll", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` }, body: JSON.stringify({ sequenceId: sequence.id, leadId: proposal.lead_id, observation: "A tailored proposal has been sent and may need a clear answer on scope, timing, or commercial terms." }) });
-      }
+
     }
   };
 
   const copyLink = async (proposal: any) => {
+    if(proposal.config?.pilotId)return toast.error("Pilot quote is internal until approved and released.");
     if (!proposal.proposal_token) return toast.error("This legacy proposal does not have a share token yet.");
     await navigator.clipboard.writeText(`${window.location.origin}/proposal/${proposal.proposal_token}`);
-    if (proposal.status === "Draft") await updateStatus(proposal, "Sent");
-    toast.success("Proposal link copied and marked sent.");
+    toast.success("Proposal link copied. Mark Sent only after personally sharing it.");
   };
 
   const createCheckout = async (proposal: any) => {
+    if(proposal.config?.pilotId)return toast.error("Pilot payments require approval and separate fulfilment verification.");
+    if(!window.confirm("Create a Stripe payment link for this exact reviewed proposal? No email will be sent."))return;
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -168,6 +148,8 @@ export function ProposalsDeals() {
   };
 
   const remove = async (id: string) => {
+    const row=proposals.find(p=>p.id===id);
+    if(row?.status!=="Draft"||row?.checkout_url||proposalIsPaid(row?.config))return toast.error("Only unpaid, unshared drafts may be deleted.");
     if (!window.confirm("Retract and delete this proposal?")) return;
     const { error } = await supabase.from("proposals").delete().eq("id", id);
     if (error) return toast.error(error.message);
@@ -182,9 +164,9 @@ export function ProposalsDeals() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Metric icon={CircleDollarSign} label="Open proposal MRR" value={`$${stats.pipelineMrr.toLocaleString()}`} note="Actual open proposal value" />
-        <Metric icon={CheckCircle2} label="Accepted MRR" value={`$${stats.acceptedMrr.toLocaleString()}`} note={accepted.length ? `${accepted.length} accepted proposal${accepted.length === 1 ? "" : "s"}` : "Not enough data yet"} />
-        <Metric icon={Clock3} label="Pending setup fees" value={`$${stats.pendingSetup.toLocaleString()}`} note="Excludes accepted and declined proposals" />
+        <Metric icon={CircleDollarSign} label="Open unpaid proposals" value={String(active.length)} note="Not recurring revenue" />
+        <Metric icon={CheckCircle2} label="Accepted, unpaid" value={String(accepted.length)} note="Acceptance is not payment" />
+        <Metric icon={Clock3} label="Payment recorded" value={String(paid.length)} note="Stripe webhook evidence; reconcile refunds separately" />
       </div>
 
       <Card className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
@@ -196,8 +178,8 @@ export function ProposalsDeals() {
             const value = Number(proposal.value || proposal.amount || 0);
             return <article key={proposal.id} className="grid gap-4 p-5 lg:grid-cols-[1.3fr_0.7fr_auto] lg:items-center">
               <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-slate-950 dark:text-white">{proposal.title}</h2><Badge variant="outline">{market}</Badge>{Number(proposal.view_count || 0) > 0 && <Badge className="bg-indigo-50 text-indigo-700">Viewed {proposal.view_count}×</Badge>}</div><p className="mt-1 text-sm font-semibold text-slate-500">{contact} · {proposal.package_name || "Custom proposal"}</p><p className="mt-2 text-xs font-bold text-slate-400">Expires {proposal.expires_at || proposal.valid_until || "not set"}</p></div>
-              <div><p className="text-2xl font-black text-slate-950 dark:text-white">{REVENUE_MARKETS[market as RevenueMarket] ? getOfferForMarket(market as RevenueMarket).monthlyLabel : `$${value.toLocaleString()}`}<span className="text-xs text-slate-400">/mo</span></p><p className="mt-1 text-xs font-bold text-slate-500">Setup: {Number(proposal.setup_fee || 0).toLocaleString()}</p></div>
-              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>{!proposal.checkout_url && <Button variant="outline" onClick={() => void createCheckout(proposal)} disabled={saving} className="rounded-xl"><CircleDollarSign className="mr-2 h-4 w-4" /> Create checkout</Button>}<Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
+              <div><p className="text-2xl font-black text-slate-950 dark:text-white">{money(proposal,proposal.config?.billing==="one_time"?proposal.setup_fee:value)}<span className="text-xs text-slate-400">{proposal.config?.billing==="one_time"?" one-time":"/mo"}</span></p><p className="mt-1 text-xs font-bold text-slate-500">{proposal.config?.billing==="one_time"?"One-time scoped quote":"Setup: "+money(proposal,proposal.setup_fee)} {proposalIsPaid(proposal.config)?" · Payment recorded":""}</p></div>
+              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>{!proposal.checkout_url && !proposal.config?.pilotId && !proposalIsPaid(proposal.config) && <Button variant="outline" onClick={() => void createCheckout(proposal)} disabled={saving} className="rounded-xl"><CircleDollarSign className="mr-2 h-4 w-4" /> Create checkout</Button>}<Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
             </article>;
           })}</div>}
         </CardContent>
@@ -205,10 +187,9 @@ export function ProposalsDeals() {
 
       <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-xl rounded-3xl"><DialogHeader><DialogTitle>Create revenue proposal</DialogTitle></DialogHeader><div className="space-y-4 py-2">
         <div><Label>Lead or customer</Label><Select value={form.target} onValueChange={(target) => setForm((current) => ({ ...current, target }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue placeholder="Choose a qualified lead" /></SelectTrigger><SelectContent>{leads.map((lead) => <SelectItem key={lead.id} value={`lead:${lead.id}`}>{lead.raw_fields?.businessName || lead.name} · {lead.email}</SelectItem>)}{businesses.map((business) => <SelectItem key={business.id} value={`business:${business.id}`}>{business.name} · customer</SelectItem>)}</SelectContent></Select></div>
-        <div><Label htmlFor="proposal-title">Proposal title</Label><Input id="proposal-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="mt-2 rounded-xl" /></div>
+        <div><Label>Product / service</Label><Select value={form.product} onValueChange={product=>setForm(current=>({...current,product,title:(liveCommercialProducts.find(p=>p.slug===product)?.name||COMMERCIAL_PILOTS.find(p=>p.id===product)?.name||product)+" proposal"}))}><SelectTrigger className="mt-2"><SelectValue/></SelectTrigger><SelectContent>{SALES_PRODUCT_SLUGS.map(slug=><SelectItem value={slug} key={slug}>{liveCommercialProducts.find(p=>p.slug===slug)?.name||slug}</SelectItem>)}{COMMERCIAL_PILOTS.map(p=><SelectItem value={p.id} key={p.id}>{p.name} · internal pilot</SelectItem>)}</SelectContent></Select></div><div><Label htmlFor="proposal-title">Proposal title</Label><Input id="proposal-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="mt-2 rounded-xl" /></div>
         <div className="grid gap-4 sm:grid-cols-2"><div><Label>Market</Label><Select value={form.market} onValueChange={(market) => setForm((current) => ({ ...current, market: market as RevenueMarket }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(REVENUE_MARKETS).map(([code, market]) => <SelectItem key={code} value={code}>{market.label}</SelectItem>)}</SelectContent></Select></div><div><Label htmlFor="proposal-expiry">Valid until</Label><Input id="proposal-expiry" type="date" value={form.expiresAt} onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))} className="mt-2 rounded-xl" /></div></div>
-        <div><Label htmlFor="proposal-checkout">Secure checkout URL <span className="font-medium text-slate-400">(optional)</span></Label><Input id="proposal-checkout" type="url" placeholder="https://buy.stripe.com/..." value={form.checkoutUrl} onChange={(event) => setForm((current) => ({ ...current, checkoutUrl: event.target.value }))} className="mt-2 rounded-xl" /><p className="mt-2 text-xs font-semibold text-slate-500">When supplied, an accepted proposal continues directly to this Stripe checkout or payment link.</p></div>
-        <div className="rounded-2xl bg-indigo-50 p-4 text-sm font-bold leading-6 text-slate-700">{offer.monthlyLabel}/month + {offer.setupLabel} setup · {offer.commitmentMonths}-month initial commitment</div>
+        {pilot?<><div><Label>Reviewed quote (USD)</Label><Input type="number" min="1" step="0.01" value={form.pilotPrice} onChange={e=>setForm(c=>({...c,pilotPrice:e.target.value}))}/></div><div><Label>Compatibility, scope and exclusions</Label><Input value={form.scopeNotes} onChange={e=>setForm(c=>({...c,scopeNotes:e.target.value}))}/></div><p className="text-sm text-amber-700">Internal draft only. Approval and payment/fulfilment validation required before activation.</p></>:<div className="rounded-2xl bg-indigo-50 p-4 text-sm text-slate-700">{liveTerms?proposalMoney(liveTerms.monthly,"USD")+"/month + "+proposalMoney(liveTerms.setup,"USD")+" setup · "+(liveTerms.term?liveTerms.term+" month commitment":"Month-to-month"):"Verified live pricing unavailable"}</div>}
       </div><DialogFooter><Button variant="outline" onClick={() => setOpen(false)} className="rounded-xl">Cancel</Button><Button onClick={() => void createProposal()} disabled={saving} className="rounded-xl bg-slate-950 text-white hover:bg-indigo-600">{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create draft</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
