@@ -82,3 +82,34 @@ test("pricing has distinct calls to action and prominent secondary plans", async
   await expect(pricing.getByRole("button", { name: /View Managed Website plan/i })).toBeVisible();
   await expect(pricing.locator(".c27-alternative-option")).toHaveCount(2);
 });
+
+
+// Guard the full visual stage, including its controls and disclosure, rather
+// than checking only whether the top of the mockup happens to be visible.
+for (const viewport of [{width:1280,height:720},{width:1366,height:768},{width:1440,height:900},{width:1920,height:1080}]) {
+  test(`homepage showcase fits the first desktop viewport at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    const stage = page.locator(".sfn-hero .sfn-signature");
+    await expect(stage).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    const tabs = stage.getByRole("tab");
+    await expect(tabs).toHaveCount(3);
+    for (let index = 0; index < 3; index++) {
+      // Keyboard/programmatic activation avoids unrelated first-visit overlays;
+      // actual keyboard and pointer interaction are covered by creative-redesign.
+      await tabs.nth(index).evaluate((el: HTMLButtonElement) => el.click());
+      await expect(tabs.nth(index)).toHaveAttribute("aria-selected", "true");
+      await expect.poll(async () => stage.evaluate(el => {
+        const bounds = el.getBoundingClientRect();
+        const controls = el.querySelector(".sfn-signature-controls")!.getBoundingClientRect();
+        const link = el.querySelector(".sfn-signature-story a")!.getBoundingClientRect();
+        const header = document.querySelector(".sfn-header")!.getBoundingClientRect();
+        return bounds.top >= header.bottom - 2 && bounds.bottom <= window.innerHeight + 2
+          && controls.bottom <= bounds.bottom && link.bottom <= bounds.bottom
+          && bounds.right <= window.innerWidth + 2;
+      }), {message:"Complete hero showcase should fit without scrolling"}).toBe(true);
+    }
+  });
+}
