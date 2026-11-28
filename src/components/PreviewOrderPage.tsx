@@ -1,3 +1,4 @@
+import { checkoutFailureCategory, verifiedProposalTerms } from "../lib/commercialExecution";
 import React from "react";
 import { ArrowLeft, ArrowRight, Check, CreditCard, ShieldCheck } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
@@ -103,7 +104,7 @@ export function PreviewOrderPage() {
     || availableProducts[1]
     || availableProducts[0];
   const price = selected ? getCommercialPrice(selected, checkoutMarket) : null;
-  const priceReady = !loading && !pricingError && Boolean(price && price.monthlyPrice !== null && Number.isFinite(price.monthlyPrice) && price.setupFee !== null && Number.isFinite(price.setupFee));
+  const priceReady = !loading && !pricingError && Boolean(verifiedProposalTerms(price)) && selected?.salesMotion === "self_serve";
   const monthly = Number(price?.monthlyPrice || 0);
   const setup = Number(price?.setupFee || 0);
   const introQuote = getIntroductoryQuote(monthly, setup, getMinimumTermMonths(price), introOfferEnabled);
@@ -133,12 +134,14 @@ export function PreviewOrderPage() {
       setError("Your preview session is incomplete. Return to the preview page and generate it again.");
       return;
     }
+    if (!termsAccepted) { setError("Confirm the commercial terms before checkout."); return; }
     if (!priceReady) {
       setError("Verified prices are not available. Please request a quote rather than continuing to checkout.");
       return;
     }
     setError("");
     setSubmitting(true);
+    let failureStatus=0;let failureCode:string|undefined;
     try {
       trackPublicEvent({
         eventType: "preview_checkout_started",
@@ -162,11 +165,16 @@ export function PreviewOrderPage() {
         }),
       });
       const payload = await response.json().catch(() => null);
+      failureStatus=response.status;failureCode=payload?.code;
       if (!response.ok || !payload?.url) {
         throw new Error(payload?.error || "Secure checkout could not be started.");
       }
-      window.location.href = payload.url;
+      const destination=new URL(payload.url);
+      if(destination.protocol!=="https:"||destination.hostname!=="checkout.stripe.com")throw Error("Secure checkout destination could not be verified.");
+      trackPublicEvent({eventType:"preview_checkout_redirected",metadata:{productSlug:selected.slug,previewId:intent.previewId}});
+      window.location.href = destination.href;
     } catch (checkoutError: any) {
+      trackPublicEvent({eventType:"preview_checkout_failed",metadata:{productSlug:selected.slug,category:checkoutFailureCategory(failureStatus,failureCode),previewId:intent.previewId}});
       setError(checkoutError?.message || "Secure checkout could not be started.");
     } finally {
       setSubmitting(false);

@@ -1,3 +1,6 @@
+import { PILOT_SETTINGS_ID, readPilotControls, signPilotRelease } from "../server/commercialPilotControls.js";
+import { proposalExpired, proposalCharge, quoteSignature, approvedPilot, proposalCanShare, proposalPaymentMatches, nextPilotStage } from "../server/commercialProposal.js";
+import { loadCommercialReadiness } from "../server/commercialReadiness.js";
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
 import { choosePrimaryWebsite } from "../src/lib/primaryWebsite.js";
 import { registerWebsiteAddonRoutes, handleWebsiteAddonWebhook, cancelWebsiteAddonsWithParent } from "../server/websiteAddonRoutes.js";
@@ -2694,6 +2697,7 @@ async function startServer() {
           const publicLeadId = session.metadata?.leadId;
           const publicPreviewId = session.metadata?.previewId;
 
+          if((publicOrder||proposalId)&&session.payment_status!=="paid"&&session.payment_status!=="no_payment_required")break;
           if (publicOrder) {
             const paidAt = new Date().toISOString();
             if (publicPreviewId && session.payment_status === "paid") {
@@ -2751,7 +2755,11 @@ async function startServer() {
 
           if (proposalId && UUID_SCHEMA.safeParse(proposalId).success) {
             const paidAt = new Date().toISOString();
-            const { data: currentProposal } = await supabaseAdmin.from("proposals").select("config").eq("id", proposalId).maybeSingle();
+            const { data: currentProposal,error:proposalError } = await supabaseAdmin.from("proposals").select("*").eq("id", proposalId).maybeSingle();
+            if(proposalError||!currentProposal)throw Error("Paid proposal not found");
+            if(currentProposal.config?.checkoutSessionId&&(!proposalPaymentMatches(currentProposal,session)||currentProposal.config.checkoutSessionId!==session.id||currentProposal.config?.acceptance?.quoteSignature!==quoteSignature(currentProposal,previewClaimSecret())||String(session.customer_details?.email||session.customer_email||"").toLowerCase()!==String(currentProposal.accepted_email||"").toLowerCase()))throw Error("Proposal payment mismatch");
+            if(currentProposal.config?.pilotId&&!approvedPilot(currentProposal,previewClaimSecret()))throw Error("Pilot approval mismatch");
+            const pilot=Boolean(currentProposal.config?.pilotId);
             const payment = {
               stripeSessionId: session.id,
               stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
@@ -2765,7 +2773,7 @@ async function startServer() {
               updated_at: paidAt,
               config: { ...(currentProposal?.config || {}), payment },
             }).eq("id", proposalId).select("id,lead_id,business_id,config").maybeSingle();
-            if (paidProposal?.business_id) {
+            if (paidProposal?.business_id && !pilot) {
               await supabaseAdmin.from("businesses").update({
                 plan: paidProposal.config?.planId || "website_growth_partner",
                 subscription_status: "active",
@@ -2775,7 +2783,8 @@ async function startServer() {
             }
             if (paidProposal?.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Begin onboarding and collect website content", next_follow_up_at: paidAt }).eq("id", paidProposal.lead_id);
             await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposalId, event_type: "paid", session_id: session.id, metadata: { amountTotal: session.amount_total, currency: session.currency } });
-            await supabaseAdmin.from("sales_tasks").insert({ lead_id: paidProposal?.lead_id || null, proposal_id: proposalId, title: "Start onboarding for paid proposal", task_type: "onboarding", priority: "high", due_at: paidAt, metadata: { stripeSessionId: session.id } });
+            await supabaseAdmin.from("sales_tasks").insert({ lead_id: paidProposal?.lead_id || null, proposal_id: proposalId, title: pilot?"Start approved service pilot — confirm access and scope":"Start onboarding for paid proposal", task_type: "onboarding", priority: "high", due_at: paidAt, metadata: { stripeSessionId: session.id,pilotId:currentProposal.config?.pilotId||null } });
+            if(pilot)break; // Pilot services never grant managed website entitlements.
           }
 
           if (businessId) {
@@ -3367,6 +3376,7 @@ async function startServer() {
           break;
         case "customer.subscription.updated": {
           const subscription = event.data.object as any;
+          if(subscription.metadata?.type==="commercial_pilot"){await supabaseAdmin.from("proposal_events").insert({proposal_id:subscription.metadata.proposalId,event_type:"pilot_subscription_updated",metadata:{status:subscription.status,eventId:event.id}});break;}
           console.log(
             `Subscription updated: ${subscription.id} (Status: ${subscription.status})`,
           );
@@ -3449,6 +3459,7 @@ async function startServer() {
         }
         case "customer.subscription.deleted": {
           const subscription = event.data.object as any;
+          if(subscription.metadata?.type==="commercial_pilot"){await supabaseAdmin.from("proposal_events").insert({proposal_id:subscription.metadata.proposalId,event_type:"pilot_subscription_cancelled",metadata:{eventId:event.id}});await supabaseAdmin.from("sales_tasks").insert({proposal_id:subscription.metadata.proposalId,title:"Stop cancelled pilot service and arrange handover",task_type:"follow_up",priority:"high",due_at:new Date().toISOString()});break;}
           console.log(`Subscription deleted: ${subscription.id}`);
 
           try {
@@ -3549,6 +3560,8 @@ async function startServer() {
         }
         case "invoice.payment_failed": {
           const invoice = event.data.object as any;
+          const pilotMetadata=invoice.parent?.subscription_details?.metadata||invoice.subscription_details?.metadata;
+          if(pilotMetadata?.type==="commercial_pilot"){await supabaseAdmin.from("proposal_events").insert({proposal_id:pilotMetadata.proposalId,event_type:"pilot_invoice_failed",metadata:{eventId:event.id,invoiceId:invoice.id,amount:invoice.amount_paid,currency:invoice.currency}});await supabaseAdmin.from("sales_tasks").insert({proposal_id:pilotMetadata.proposalId,title:"Review pilot subscription payment failure before further service",task_type:"follow_up",priority:"high",due_at:new Date().toISOString()});break;}
           const invoiceSubscription = invoice.subscription || invoice.parent?.subscription_details?.subscription;
           const subscriptionId = typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id;
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
@@ -3580,6 +3593,8 @@ async function startServer() {
         }
         case "invoice.paid": {
           const invoice = event.data.object as any;
+          const pilotMetadata=invoice.parent?.subscription_details?.metadata||invoice.subscription_details?.metadata;
+          if(pilotMetadata?.type==="commercial_pilot"){await supabaseAdmin.from("proposal_events").insert({proposal_id:pilotMetadata.proposalId,event_type:"pilot_invoice_paid",metadata:{eventId:event.id,invoiceId:invoice.id,amount:invoice.amount_paid,currency:invoice.currency}});break;}
           const invoiceSubscription = invoice.subscription || invoice.parent?.subscription_details?.subscription;
           const subscriptionId = typeof invoiceSubscription === "string" ? invoiceSubscription : invoiceSubscription?.id;
           const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
@@ -7480,10 +7495,12 @@ async function startServer() {
         }
         const pageSize = 50;
         const offset = (requested - 1) * pageSize;
-        const { data, count, error } = await supabaseAdmin.from("sales_tasks")
+        const priority = req.query.priority === "high" ? "high" : null;
+        let taskQuery = supabaseAdmin.from("sales_tasks")
           .select("id,lead_id,prospect_id,title,task_type,priority,notes,status,due_at", { count: "exact" })
-          .eq("status", "open").lte("due_at", new Date().toISOString())
-          .order("due_at", { ascending: true }).order("id", { ascending: true })
+          .eq("status", "open").lte("due_at", new Date().toISOString());
+        if(priority)taskQuery=taskQuery.eq("priority",priority);
+        const {data,count,error}=await taskQuery.order("due_at", { ascending: true }).order("id", { ascending: true })
           .range(offset, offset + pageSize - 1);
         if (error) throw error;
         const rows = data || [];
@@ -7514,6 +7531,11 @@ async function startServer() {
 
   // Commercial data integrity is read-only. Never recreate historical leads from
   // anonymous tracking events: those events do not contain a verified enquiry.
+  app.get("/api/admin/commercial-readiness", authenticate, superAdminOnly, rateLimit({windowMs:60000,max:5,keyPrefix:"commercial-readiness"}), async (_req:any,res:any)=>{
+    try{res.setHeader("Cache-Control","no-store");return res.json(await loadCommercialReadiness(supabaseAdmin,()=>getStripe()));}
+    catch{return res.status(503).json({error:"Commercial readiness data unavailable"});}
+  });
+
   app.get(
     "/api/admin/revenue-health",
     authenticate,
@@ -7698,49 +7720,90 @@ async function startServer() {
     },
   );
 
-  app.post("/api/admin/proposals/:proposalId/create-checkout", authenticate, async (req: any, res) => {
+  const getPilotRelease=async(id:string)=>{try{return (await readPilotControls(supabaseAdmin,previewClaimSecret())).releases[id]||null;}catch{return null;}};
+  app.get("/api/admin/commercial-pilot-controls",authenticate,superAdminOnly,async(_req:any,res:any)=>{try{const {releases,updatedAt}=await readPilotControls(supabaseAdmin,previewClaimSecret());res.setHeader("Cache-Control","no-store");return res.json({releases,updatedAt});}catch{return res.status(503).json({error:"Pilot release settings unavailable."});}});
+  app.patch("/api/admin/commercial-pilot-controls",authenticate,superAdminOnly,rateLimit({windowMs:60000,max:12,keyPrefix:"pilot-release"}),async(req:any,res:any)=>{
+    const body=validateBody(z.object({id:z.enum(["conversion-sprint","website-care","agency-partner"]),enabled:z.boolean(),terms:z.string().trim().min(20).max(3000),confirmation:z.literal("APPROVE COMMERCIAL PILOT")}).strict(),req,res);if(!body)return;
+    try{const current=await readPilotControls(supabaseAdmin,previewClaimSecret());const release={enabled:body.enabled,terms:body.terms,approvedAt:new Date().toISOString(),approvedBy:req.user.id};const content={...current.raw,[body.id]:{...release,signature:signPilotRelease(body.id,release,previewClaimSecret())}};
+    const result=current.updatedAt?await supabaseAdmin.from("settings").update({content,updated_at:release.approvedAt}).eq("id",PILOT_SETTINGS_ID).eq("updated_at",current.updatedAt).select("id").maybeSingle():await supabaseAdmin.from("settings").insert({id:PILOT_SETTINGS_ID,content,updated_at:release.approvedAt}).select("id").maybeSingle();
+    if(result.error||!result.data)return res.status(409).json({error:"Settings changed; refresh and retry."});return res.json({success:true,release});}catch{return res.status(503).json({error:"Pilot release setting could not be saved."});}
+  });
+  // Explicit owner approval; approval signature binds the exact scoped quote.
+  app.post("/api/admin/proposals/:proposalId/approve-pilot", authenticate, superAdminOnly, async(req:any,res:any)=>{
+    if(!UUID_SCHEMA.safeParse(req.params.proposalId).success||req.body?.confirm!==true)return res.status(400).json({error:"Explicit approval required"});
+    const {data:row,error}=await supabaseAdmin.from("proposals").select("*").eq("id",req.params.proposalId).maybeSingle();
+    if(error||!row||row.status!=="Draft"||!row.config?.pilotId||!proposalCharge(row)||proposalExpired(row)||row.checkout_url)return res.status(409).json({error:"Review a current, unpaid scoped pilot draft first."});
+    const release=await getPilotRelease(row.config.pilotId);
+    if(!release?.enabled)return res.status(409).json({error:"Pilot release is disabled. Approve the service in Commercial execution first."});
+    const config={...row.config,approvalState:"approved",approvedAt:new Date().toISOString(),approvedBy:req.user.id,releaseApprovedAt:release.approvedAt,approvalSignature:quoteSignature(row,previewClaimSecret())};
+    const {data:updated,error:writeError}=await supabaseAdmin.from("proposals").update({config,updated_at:new Date().toISOString()}).eq("id",row.id).eq("updated_at",row.updated_at).select("id").maybeSingle();
+    if(writeError||!updated)return res.status(409).json({error:"Draft changed; refresh and review again."});
+    return res.json({success:true});
+  });
+  app.post("/api/admin/proposals/:proposalId/fulfilment", authenticate, superAdminOnly, async(req:any,res:any)=>{
+    const body=validateBody(z.object({stage:z.enum(["access_confirmed","in_delivery","review","delivered","maintenance","closed"]),evidence:z.string().trim().min(10).max(1500)}).strict(),req,res);if(!body)return;
+    if(!UUID_SCHEMA.safeParse(req.params.proposalId).success)return res.status(400).json({error:"Invalid proposal ID"});
+    try{
+      const {data:row,error}=await supabaseAdmin.from("proposals").select("*").eq("id",req.params.proposalId).maybeSingle();
+      if(error||!row||!approvedPilot(row,previewClaimSecret())||!nextPilotStage(row,body.stage))return res.status(409).json({error:"Invalid pilot fulfilment transition"});
+      const stripe=await getStripe();const session=await stripe.checkout.sessions.retrieve(row.config.payment.stripeSessionId);
+      if(!proposalPaymentMatches(row,session))return res.status(409).json({error:"Payment could not be verified"});
+      if(row.config.pilotId==="website-care"&&body.stage!=="closed"){const subscription=await stripe.subscriptions.retrieve(String(session.subscription));if(subscription.status!=="active")return res.status(409).json({error:"Website Care subscription is not active; reconcile billing first."});}
+      const fulfilment={stage:body.stage,evidence:body.evidence,updatedAt:new Date().toISOString(),updatedBy:req.user.id};
+      const {data:updated,error:writeError}=await supabaseAdmin.from("proposals").update({config:{...row.config,fulfilment},updated_at:fulfilment.updatedAt}).eq("id",row.id).eq("updated_at",row.updated_at).select("id").maybeSingle();
+      if(writeError||!updated)return res.status(409).json({error:"Proposal changed; reload"});
+      await supabaseAdmin.from("proposal_events").insert({proposal_id:row.id,event_type:"pilot_fulfilment",metadata:fulfilment});return res.json({success:true,fulfilment});
+    }catch{return res.status(503).json({error:"Pilot fulfilment could not be verified"});}
+  });
+  app.post("/api/admin/proposals/:proposalId/create-checkout", authenticate, async (req: any, res: any) => {
     if (!UUID_SCHEMA.safeParse(req.params.proposalId).success) return res.status(400).json({ error: "Invalid proposal ID" });
     try {
       const profile = await getProfileForUser(req.user.id);
       if (!canManageLeadInbox(profile)) return res.status(403).json({ error: "Sales access required" });
-      const { data: proposal, error } = await supabaseAdmin.from("proposals").select("*").eq("id", req.params.proposalId).single();
+      const { data: proposal, error } = await supabaseAdmin.from("proposals").select("*,leads(email)").eq("id", req.params.proposalId).single();
       if (error || !proposal) return res.status(404).json({ error: "Proposal not found" });
-      if (proposal.checkout_url) return res.json({ checkoutUrl: proposal.checkout_url, reused: true });
-      const market = String(proposal.config?.market || "US").toUpperCase();
-      const currencyByMarket: Record<string, string> = { MY: "myr", SG: "sgd", GB: "gbp", UK: "gbp", US: "usd" };
-      // Keep historical proposal amounts in their originally agreed currency; new proposals are explicitly USD.
-      const currency = String(proposal.config?.currency || currencyByMarket[market] || "usd").toLowerCase();
-      const monthlyAmount = Math.round(Number(proposal.value || proposal.amount || 0) * 100);
-      const setupAmount = Math.round(Number(proposal.setup_fee || 0) * 100);
-      if (!monthlyAmount) return res.status(400).json({ error: "Proposal monthly value is missing" });
-      const stripe = await getStripe();
-      const product = await stripe.products.create({ name: proposal.package_name || proposal.title || "Bennie Studio managed website", metadata: { proposalId: proposal.id } });
-      const monthlyPrice = await stripe.prices.create({ product: product.id, currency, unit_amount: monthlyAmount, recurring: { interval: "month" }, metadata: { proposalId: proposal.id, chargeType: "monthly" } });
-      const lineItems: Stripe.PaymentLinkCreateParams.LineItem[] = [{ price: monthlyPrice.id, quantity: 1 }];
-      if (setupAmount > 0) {
-        const setupPrice = await stripe.prices.create({ product: product.id, currency, unit_amount: setupAmount, metadata: { proposalId: proposal.id, chargeType: "setup" } });
-        lineItems.push({ price: setupPrice.id, quantity: 1 });
+      if(proposal.status!=="Accepted"||proposalExpired(proposal)||!proposal.config?.acceptance?.termsAcceptedAt||proposal.config?.payment?.paidAt)return res.status(409).json({error:"Customer acceptance of a current unpaid quote is required."});
+      const email=String(proposal.accepted_email||"").toLowerCase();
+      if(!EMAIL_SCHEMA.safeParse(email).success)return res.status(409).json({error:"Customer acceptance email is missing."});
+      const charge=proposalCharge(proposal);
+      if(proposal.config?.acceptance?.quoteSignature!==quoteSignature(proposal,previewClaimSecret()))return res.status(409).json({error:"Accepted quote has changed or is legacy. Obtain acceptance of a new quote."});
+      if(!charge)return res.status(409).json({error:"Quote terms could not be verified. Issue a new quote."});
+      const pilot=Boolean(proposal.config?.pilotId);
+      if(pilot){const release=await getPilotRelease(proposal.config.pilotId);if(!release?.enabled||release.approvedAt!==proposal.config.releaseApprovedAt||profile.role!=="super_admin"||!approvedPilot(proposal,previewClaimSecret()))return res.status(403).json({error:"Pilot payments are not approved for these release terms."});}
+      let planId="";
+      if(!pilot){
+        const {data:product,error:priceError}=await supabaseAdmin.from("commercial_products").select("slug,entitlement_plan_slug,commercial_market_prices!inner(currency,recurring_monthly_price,recurring_setup_fee,minimum_term_months,recurring_config_status,active)").eq("slug",proposal.config.commercialProductSlug).eq("active",true).eq("commercial_market_prices.market","INTL").eq("commercial_market_prices.active",true).maybeSingle();
+        if(priceError||!product)return res.status(409).json({error:"Current product is unavailable."});
+        const price=Array.isArray(product.commercial_market_prices)?product.commercial_market_prices[0]:product.commercial_market_prices;
+        const waiver=await resolveOtcWaiver(proposal.business_id);
+        if(!price||price.currency!=="USD"||price.recurring_config_status!=="live"||charge.monthlyMinor!==Math.round(Number(price.recurring_monthly_price)*100)||charge.setupMinor!==(waiver?0:Math.round(Number(price.recurring_setup_fee||0)*100))||charge.term!==getMinimumTermMonths({minimumTermMonths:price.minimum_term_months}))return res.status(409).json({error:"Current catalogue terms differ. Issue a new quote and obtain acceptance."});
+        planId=product.entitlement_plan_slug||product.slug;
+        if(proposal.business_id){const {data:business,error:businessError}=await supabaseAdmin.from("businesses").select("stripe_subscription_id,subscription_status").eq("id",proposal.business_id).maybeSingle();if(businessError||!business||business.stripe_subscription_id||business.subscription_status==="active")return res.status(409).json({error:"Existing subscriptions require the account upgrade workflow, not a new proposal subscription."});}
       }
-      const proposalTermMonths = getMinimumTermMonths({ minimumTermMonths: proposal.config?.commitmentMonths });
-      const paymentLink = await stripe.paymentLinks.create({
-        line_items: lineItems,
-        billing_address_collection: "required",
-        tax_id_collection: { enabled: true },
-        after_completion: {
-          type: "redirect",
-          redirect: {
-            url: `${publicAppUrl()}/signup?redirect=${encodeURIComponent(`/dashboard/onboarding?proposal=${proposal.id}`)}`,
-          },
-        },
-        metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market, termMonths: String(proposalTermMonths), termsVersion: COMMERCIAL_TERMS_VERSION, type: "proposal_subscription" },
-        subscription_data: { metadata: { proposalId: proposal.id, leadId: proposal.lead_id || "", businessId: proposal.business_id || "", planId: proposal.config?.planId || "website_growth_partner", market, termMonths: String(proposalTermMonths), termsVersion: COMMERCIAL_TERMS_VERSION } },
-      });
-      await supabaseAdmin.from("proposals").update({ checkout_url: paymentLink.url, updated_at: new Date().toISOString() }).eq("id", proposal.id);
-      await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "checkout_started", metadata: { paymentLinkId: paymentLink.id, createdBy: req.user.id } });
-      return res.json({ checkoutUrl: paymentLink.url });
+      const stripe=await getStripe();
+      const previous=String(proposal.config?.checkoutSessionId||"");
+      if(previous){
+        const existing=await stripe.checkout.sessions.retrieve(previous);
+        if(existing.status==="open"&&existing.url)return res.json({checkoutUrl:existing.url,reused:true});
+        if(existing.status==="complete")return res.status(409).json({error:"Checkout already completed; reconcile payment before proceeding."});
+      }else if(proposal.checkout_url)return res.status(409).json({error:"Legacy payment link requires finance reconciliation before replacement."});
+      const checkoutHour=Math.floor(Date.now()/3600000);
+      const expiresAt=Math.min(Math.floor(Date.parse(String(proposal.expires_at||proposal.valid_until)+"T23:59:59Z")/1000),checkoutHour*3600+23*3600);
+      if(expiresAt<Math.floor(Date.now()/1000)+1800)return res.status(409).json({error:"Quote expires too soon. Issue an updated quote."});
+      const metadata={proposalId:proposal.id,leadId:proposal.lead_id||"",businessId:pilot?"":proposal.business_id||"",planId,productSlug:pilot?"":proposal.config.commercialProductSlug||"",market:"INTL",termMonths:String(charge.term),termsVersion:COMMERCIAL_TERMS_VERSION,type:pilot?"commercial_pilot":"proposal_subscription",pilotId:pilot?String(proposal.config.pilotId):""};
+      const lineItems: any[]=[];
+      if(charge.monthlyMinor)lineItems.push({price_data:{currency:"usd",product_data:{name:proposal.package_name},unit_amount:charge.monthlyMinor,recurring:{interval:"month"}},quantity:1});
+      if(charge.setupMinor)lineItems.push({price_data:{currency:"usd",product_data:{name:proposal.package_name+(charge.monthlyMinor?" setup":"")},unit_amount:charge.setupMinor},quantity:1});
+      const url=publicAppUrl()+"/proposal/"+proposal.proposal_token;
+      const session=await stripe.checkout.sessions.create({mode:charge.monthlyMinor?"subscription":"payment",customer_email:email,line_items:lineItems,expires_at:expiresAt,billing_address_collection:"required",tax_id_collection:{enabled:true},payment_method_types:["card"],success_url:url+"?payment=returned",cancel_url:url,metadata,...(charge.monthlyMinor?{subscription_data:{metadata}}:{})},{idempotencyKey:"commercial-proposal-"+proposal.id+"-"+(previous||"initial")+"-"+checkoutHour});
+      if(!session.url)throw Error("Checkout unavailable");
+      const {error:saveError}=await supabaseAdmin.from("proposals").update({checkout_url:session.url,config:{...proposal.config,checkoutSessionId:session.id,planId},updated_at:new Date().toISOString()}).eq("id",proposal.id);
+      if(saveError)throw saveError;
+      await supabaseAdmin.from("proposal_events").insert({proposal_id:proposal.id,event_type:"checkout_started",metadata:{sessionId:session.id,createdBy:req.user.id}});
+      return res.json({checkoutUrl:session.url});
     } catch (error: any) {
-      console.error("Proposal checkout creation failed:", error);
-      return res.status(500).json({ error: safeErrorMessage(error) });
+      console.error("Proposal checkout creation failed:",error?.message);
+      return res.status(500).json({error:"Secure proposal checkout could not be prepared."});
     }
   });
 
@@ -7752,11 +7815,12 @@ async function startServer() {
       try {
         const { data, error } = await supabaseAdmin
           .from("proposals")
-          .select("id,title,package_name,value,setup_fee,status,expires_at,scope,outcome,config,checkout_url,proposal_token,view_count,first_viewed_at,last_viewed_at,businesses(name),leads(name,raw_fields)")
+          .select("id,lead_id,business_id,title,package_name,value,amount,setup_fee,status,expires_at,valid_until,scope,outcome,config,checkout_url,proposal_token,view_count,first_viewed_at,last_viewed_at,businesses(name),leads(name)")
           .eq("proposal_token", req.params.token)
           .maybeSingle();
         if (error) throw error;
-        if (!data) return res.status(404).json({ error: "Proposal not found" });
+        res.setHeader("Cache-Control","no-store");
+        if (!data || !proposalCanShare(data,previewClaimSecret())) return res.status(404).json({ error: "Proposal not available. Ask Bennie Studio for a current quote." });
         const viewedAt = new Date().toISOString();
         const visitorKey = crypto.createHash("sha256").update(`${req.params.token}:${getClientIp(req)}:${req.get("user-agent") || ""}`).digest("hex").slice(0, 24);
         const dedupeAfter = new Date(Date.now() - 30 * 60000).toISOString();
@@ -7766,7 +7830,8 @@ async function startServer() {
           await supabaseAdmin.from("proposals").update({ first_viewed_at: data.first_viewed_at || viewedAt, last_viewed_at: viewedAt, view_count: viewCount }).eq("id", data.id);
           await supabaseAdmin.from("proposal_events").insert({ proposal_id: data.id, event_type: "viewed", metadata: { visitorKey } });
         }
-        return res.json({ proposal: { ...data, view_count: viewCount, first_viewed_at: data.first_viewed_at || viewedAt, last_viewed_at: viewedAt } });
+        const config={market:data.config?.market,currency:data.config?.currency,commitmentMonths:data.config?.commitmentMonths,billing:data.config?.billing,paymentRecorded:Boolean(data.config?.payment?.paidAt&&data.config?.payment?.stripeSessionId),checkoutReady:Boolean(data.status==="Accepted"&&data.checkout_url&&!data.config?.payment?.paidAt)};
+        return res.json({ proposal: { id:data.id,title:data.title,package_name:data.package_name,value:data.value,setup_fee:data.setup_fee,status:data.status,expires_at:data.expires_at,scope:data.scope,outcome:data.outcome,config,businesses:data.businesses,leads:{name:(data.leads as any)?.name},view_count:viewCount,first_viewed_at:data.first_viewed_at||viewedAt,last_viewed_at:viewedAt } });
       } catch (error) {
         console.error("Public proposal load failed:", error);
         return res.status(500).json({ error: "Proposal could not be loaded" });
@@ -7784,16 +7849,20 @@ async function startServer() {
       try {
         const { data: proposal, error } = await supabaseAdmin
           .from("proposals")
-          .select("id,lead_id,status,expires_at,checkout_url,config,leads(email)")
+          .select("*,leads(email)")
           .eq("proposal_token", req.params.token)
           .maybeSingle();
         if (error) throw error;
-        if (!proposal) return res.status(404).json({ error: "Proposal not found" });
+        if (!proposal || !proposalCanShare(proposal,previewClaimSecret())) return res.status(404).json({ error: "Proposal not available" });
         if (proposal.expires_at && new Date(`${proposal.expires_at}T23:59:59Z`) < new Date()) return res.status(410).json({ error: "This proposal has expired. Please request an updated version." });
-        const leadEmail = String((proposal as any).leads?.email || "").toLowerCase();
+        const leadEmail = String((proposal as any).leads?.email || proposal.accepted_email || "").toLowerCase();
         if (leadEmail && leadEmail !== body.email.toLowerCase()) return res.status(403).json({ error: "Use the email address that received this proposal." });
+        if(!leadEmail)return res.status(409).json({error:"This proposal needs a verified recipient email. Ask for a lead-linked quote."});
+        if(proposal.config?.payment?.paidAt)return res.json({success:true,paid:true,checkoutUrl:null});
+        if(proposal.config?.pilotId){const release=await getPilotRelease(proposal.config.pilotId);if(!release?.enabled||release.approvedAt!==proposal.config.releaseApprovedAt)return res.status(409).json({error:"This service quote needs updated commercial approval."});}
+        if(proposal.status==="Accepted"&&proposal.config?.acceptance?.termsAcceptedAt){if(proposal.config.acceptance.quoteSignature!==quoteSignature(proposal,previewClaimSecret()))return res.status(409).json({error:"Quote changed; request a new quote."});return res.json({success:true,checkoutUrl:proposal.checkout_url||null});}
         const acceptedAt = new Date().toISOString();
-        const acceptance = { termsAcceptedAt: acceptedAt, termsVersion: COMMERCIAL_TERMS_VERSION };
+        const acceptance = { termsAcceptedAt: acceptedAt, termsVersion: COMMERCIAL_TERMS_VERSION, quoteSignature:quoteSignature(proposal,previewClaimSecret()) };
         const { error: updateError } = await supabaseAdmin.from("proposals").update({
           status: "Accepted",
           accepted_at: acceptedAt,
@@ -7802,9 +7871,9 @@ async function startServer() {
           config: { ...((proposal as any).config || {}), acceptance },
         }).eq("id", proposal.id);
         if (updateError) throw updateError;
-        if (proposal.lead_id) await supabaseAdmin.from("leads").update({ status: "won", automation_next_action: "Send secure checkout and onboarding link", next_follow_up_at: acceptedAt }).eq("id", proposal.lead_id);
+        if (proposal.lead_id) await supabaseAdmin.from("leads").update({ status: "proposal", automation_next_action: "Prepare secure checkout for accepted quote; payment pending", next_follow_up_at: acceptedAt }).eq("id", proposal.lead_id);
         await supabaseAdmin.from("proposal_events").insert({ proposal_id: proposal.id, event_type: "accepted", metadata: { leadId: proposal.lead_id || null, ...acceptance } });
-        await supabaseAdmin.from("tracking_events").insert({ event_type: "proposal_accepted", source_platform: "bennie_studio_public", source_page: `/proposal/${req.params.token}`, metadata: { proposalId: proposal.id, leadId: proposal.lead_id || null } }).then(({ error: trackingError }) => {
+        await supabaseAdmin.from("tracking_events").insert({ event_type: "proposal_accepted", source_platform: "bennie_studio_public", source_page: "/proposal", metadata: { proposalId: proposal.id, leadId: proposal.lead_id || null } }).then(({ error: trackingError }) => {
           if (trackingError) console.warn("Proposal acceptance tracking skipped:", trackingError.message);
         });
         return res.json({ success: true, checkoutUrl: proposal.checkout_url || null });

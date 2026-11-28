@@ -534,7 +534,7 @@ test("shows and accepts a public proposal without exposing checkout secrets", as
     value: 799,
     setup_fee: 1800,
     status: "Sent",
-    expires_at: "2026-08-31",
+    expires_at: "2099-08-31",
     scope: ["Website strategy, copy and managed build", "Monthly improvements"],
     outcome: "A clearer managed website and enquiry journey.",
     config: { market: "US", commitmentMonths: 6 },
@@ -551,6 +551,18 @@ test("shows and accepts a public proposal without exposing checkout secrets", as
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: /Accept proposal/i }).click();
   await expect(page.getByRole("heading", { name: "Proposal accepted" })).toBeVisible();
+  await expect(page.getByText(/Payment is still pending/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Payment recorded" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Refresh payment status" })).toBeVisible();
+});
+
+test("a paid proposal displays payment confirmation without another checkout",async({page})=>{
+  const token="00000000-0000-4000-8000-000000000503";
+  await page.route("**/api/platform-events",route=>json(route,{success:true}));
+  await page.route("**/api/public/proposals/"+token,route=>json(route,{proposal:{id:token,title:"Paid service",package_name:"Conversion Sprint",value:0,setup_fee:199,status:"Accepted",expires_at:"2099-08-31",scope:["Agreed review"],config:{currency:"USD",billing:"one_time",commitmentMonths:0,paymentRecorded:true,checkoutReady:false}}}));
+  await page.goto("/proposal/"+token);
+  await expect(page.getByRole("heading",{name:"Payment recorded"})).toBeVisible();
+  await expect(page.getByRole("button",{name:/Accept proposal|Continue to secure checkout/i})).toHaveCount(0);
 });
 
 test("prospect sales preview presents consistent plan-aware CTAs and responsive device controls", async ({ page }, testInfo) => {

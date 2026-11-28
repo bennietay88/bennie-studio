@@ -907,6 +907,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
   const [goal, setGoal] = React.useState(previewGoals.includes(initialGoal) ? initialGoal : previewGoals[0]);
   const [generated, setGenerated] = React.useState(savedPreviewIsCurrent && Boolean(savedPreviewIntent.generatedWebsite));
   const [quickConcept, setQuickConcept] = React.useState(false);
+  const [advancedPreviewOptions,setAdvancedPreviewOptions]=React.useState(salesMode);
   const [generatedWebsite, setGeneratedWebsite] = React.useState<Website | null>(
     savedPreviewIsCurrent ? savedPreviewIntent.generatedWebsite || null : null,
   );
@@ -1714,6 +1715,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
         },
       });
     } catch (submissionError: any) {
+      trackPublicEvent({eventType:"preview_generation_failed",metadata:{mode:previewMode}});
       setError(submissionError?.message || "The preview could not be prepared. Please retry.");
       trackPublicEvent({ eventType: "preview_failed", label: form.businessName || form.websiteUrl, target: "/generate-preview" });
     } finally {
@@ -1920,7 +1922,8 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                 </section>
               ) : null}
 
-              <section className="bt-premium-card p-5 sm:p-7">
+              <button type="button" aria-expanded={advancedPreviewOptions} onClick={()=>setAdvancedPreviewOptions(v=>!v)} className="w-full rounded-lg border bg-white p-4 text-left text-sm font-semibold text-[#374151]">{advancedPreviewOptions?"Hide optional design settings":"Personalise colours and design (optional)"}</button>
+              <section className={advancedPreviewOptions?"bt-premium-card p-5 sm:p-7":"hidden"}>
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
                   <div className="max-w-xl">
                     <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#5746e8]">Brand colours</p>
@@ -2023,7 +2026,7 @@ function GeneratePreviewPage({ cmsPage }: { cmsPage?: PlatformCmsPage }) {
                 </div>
               </section>
 
-              <section className={previewMode === "website" ? "hidden" : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7"}>
+              <section className={previewMode === "website" || !advancedPreviewOptions ? "hidden" : "border border-[#dfe2ea] bg-[#f9f8f4] p-5 sm:p-7"}>
                 <div className="mb-6 flex items-start gap-4 border-b border-[#dfe2ea] pb-5">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#141821] text-sm font-bold text-white">3</span>
                   <div>
