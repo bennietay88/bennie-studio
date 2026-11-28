@@ -570,7 +570,8 @@ export function ProspectExplorer() {
   const deleteProspect = async (id: string) => {
     if (!confirm("Delete this prospect? Scheduled follow-ups and unsent emails will be cancelled. This cannot be undone.")) return;
     try {
-      await adminProspectRequest("/api/admin/prospects/bulk", { ids: [id], action: "delete" });
+      const result = await adminProspectRequest("/api/admin/prospects/bulk", { ids: [id], action: "delete" });
+      if (result.processed !== 1) throw new Error("Prospect could not be deleted. Refresh and check administrator permissions.");
       setProspects((current) => current.filter((prospect) => prospect.id !== id));
       setSelectedIds((current) => current.filter((selected) => selected !== id));
       toast.success("Prospect deleted and pending follow-ups cancelled.");
@@ -631,12 +632,17 @@ export function ProspectExplorer() {
     if (!bulkAction || !selectedIds.length || bulkSaving) return;
     const ids = [...selectedIds];
     let completed = 0;
+    const processedIds = new Set<string>();
     try {
       setBulkSaving(true);
       for (let i = 0; i < ids.length; i += 100) {
         const chunk = ids.slice(i, i + 100);
-        await adminProspectRequest("/api/admin/prospects/bulk", { ids: chunk, action: bulkAction });
-        completed += chunk.length;
+        const result = await adminProspectRequest("/api/admin/prospects/bulk", { ids: chunk, action: bulkAction });
+        for (const id of (result.processedIds || [])) processedIds.add(id);
+        completed = processedIds.size;
+        if (result.failedIds?.length || result.processed !== chunk.length) {
+          throw new Error("Some prospects could not be processed. Review administrator permissions and remaining records.");
+        }
       }
       toast.success(bulkAction === "delete"
         ? `${completed} prospects deleted; pending actions cancelled.`
@@ -645,7 +651,7 @@ export function ProspectExplorer() {
       setBulkAction(null);
     } catch (error: any) {
       toast.error(`${completed} processed. ${error?.message || "Bulk action failed."} Refresh and review remaining prospects.`);
-      setSelectedIds(ids.slice(completed));
+      setSelectedIds(ids.filter(id => !processedIds.has(id)));
       setBulkAction(null);
     } finally {
       setBulkSaving(false);
