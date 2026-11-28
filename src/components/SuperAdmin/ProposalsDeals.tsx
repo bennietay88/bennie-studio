@@ -95,7 +95,7 @@ export function ProposalsDeals() {
   const updateStatus = async (proposal: any, status: string) => {
     if(proposalIsPaid(proposal.config)||proposal.checkout_url)return toast.error("A payment-linked or paid proposal requires manual finance review before changing status.");
     if(status==="Accepted")return toast.error("Acceptance must be recorded through the customer link; it is not payment.");
-    if(status==="Sent"&&proposal.config?.pilotId)return toast.error("Pilot quotes require commercial approval before sharing.");
+    if(status==="Sent"&&proposal.config?.pilotId&&proposal.config?.approvalState!=="approved")return toast.error("Pilot quotes require commercial approval before sharing.");
     let lossReason = "";
     if (status === "Declined") {
       lossReason = window.prompt("Why was this proposal lost? Record the actual reason before closing it.", proposal.config?.lossReason || "")?.trim() || "";
@@ -122,14 +122,15 @@ export function ProposalsDeals() {
   };
 
   const copyLink = async (proposal: any) => {
-    if(proposal.config?.pilotId)return toast.error("Pilot quote is internal until approved and released.");
+    if(proposal.config?.pilotId&&proposal.config?.approvalState!=="approved")return toast.error("Pilot quote is internal until approved and released.");
+    if(!["Sent","Accepted"].includes(proposal.status))return toast.error("Mark the reviewed quote Sent before sharing.");
     if (!proposal.proposal_token) return toast.error("This legacy proposal does not have a share token yet.");
     await navigator.clipboard.writeText(`${window.location.origin}/proposal/${proposal.proposal_token}`);
     toast.success("Proposal link copied. Mark Sent only after personally sharing it.");
   };
 
   const createCheckout = async (proposal: any) => {
-    if(proposal.config?.pilotId)return toast.error("Pilot payments require approval and separate fulfilment verification.");
+    if(proposal.status!=="Accepted")return toast.error("Customer acceptance is required first.");
     if(!window.confirm("Create a Stripe payment link for this exact reviewed proposal? No email will be sent."))return;
     setSaving(true);
     try {
@@ -138,8 +139,8 @@ export function ProposalsDeals() {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || "Checkout could not be created");
       setProposals((current) => current.map((item) => item.id === proposal.id ? { ...item, checkout_url: payload.checkoutUrl } : item));
-      await navigator.clipboard.writeText(payload.checkoutUrl);
-      toast.success("Secure Stripe checkout created and copied.");
+      await navigator.clipboard.writeText(window.location.origin+"/proposal/"+proposal.proposal_token);
+      toast.success("Secure checkout prepared. Customer proposal link copied; no email sent.");
     } catch (error: any) {
       toast.error(error.message || "Checkout could not be created");
     } finally {
@@ -147,6 +148,7 @@ export function ProposalsDeals() {
     }
   };
 
+  const approvePilot=async(proposal:any)=>{if(!window.confirm("Approve this exact scoped pilot quotation for customer review? This does not send email or charge anyone."))return;setSaving(true);try{const {data:{session}}=await supabase.auth.getSession();const response=await fetch("/api/admin/proposals/"+proposal.id+"/approve-pilot",{method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+session?.access_token},body:JSON.stringify({confirm:true})});const result=await response.json();if(!response.ok)throw Error(result.error||"Approval unavailable");await fetchData();toast.success("Pilot quote approved");}catch(e:any){toast.error(e.message);}finally{setSaving(false);}};
   const remove = async (id: string) => {
     const row=proposals.find(p=>p.id===id);
     if(row?.status!=="Draft"||row?.checkout_url||proposalIsPaid(row?.config))return toast.error("Only unpaid, unshared drafts may be deleted.");
@@ -179,7 +181,7 @@ export function ProposalsDeals() {
             return <article key={proposal.id} className="grid gap-4 p-5 lg:grid-cols-[1.3fr_0.7fr_auto] lg:items-center">
               <div><div className="flex flex-wrap items-center gap-2"><h2 className="font-black text-slate-950 dark:text-white">{proposal.title}</h2><Badge variant="outline">{market}</Badge>{Number(proposal.view_count || 0) > 0 && <Badge className="bg-indigo-50 text-indigo-700">Viewed {proposal.view_count}×</Badge>}</div><p className="mt-1 text-sm font-semibold text-slate-500">{contact} · {proposal.package_name || "Custom proposal"}</p><p className="mt-2 text-xs font-bold text-slate-400">Expires {proposal.expires_at || proposal.valid_until || "not set"}</p></div>
               <div><p className="text-2xl font-black text-slate-950 dark:text-white">{money(proposal,proposal.config?.billing==="one_time"?proposal.setup_fee:value)}<span className="text-xs text-slate-400">{proposal.config?.billing==="one_time"?" one-time":"/mo"}</span></p><p className="mt-1 text-xs font-bold text-slate-500">{proposal.config?.billing==="one_time"?"One-time scoped quote":"Setup: "+money(proposal,proposal.setup_fee)} {proposalIsPaid(proposal.config)?" · Payment recorded":""}</p></div>
-              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>{!proposal.checkout_url && !proposal.config?.pilotId && !proposalIsPaid(proposal.config) && <Button variant="outline" onClick={() => void createCheckout(proposal)} disabled={saving} className="rounded-xl"><CircleDollarSign className="mr-2 h-4 w-4" /> Create checkout</Button>}<Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
+              <div className="flex flex-wrap items-center gap-2"><Select value={proposal.status || "Draft"} onValueChange={(value) => void updateStatus(proposal, value)}><SelectTrigger className="w-32 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{PROPOSAL_STATUSES.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}</SelectContent></Select>{proposal.config?.pilotId&&proposal.config?.approvalState!=="approved"&&proposal.status==="Draft"&&<Button variant="outline" disabled={saving} onClick={()=>void approvePilot(proposal)}>Approve pilot</Button>}{proposal.status==="Accepted" && !proposalIsPaid(proposal.config) && <Button variant="outline" onClick={() => void createCheckout(proposal)} disabled={saving} className="rounded-xl"><CircleDollarSign className="mr-2 h-4 w-4" /> Create checkout</Button>}<Button variant="outline" size="icon" onClick={() => void copyLink(proposal)} className="rounded-xl" aria-label="Copy proposal link"><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => void remove(proposal.id)} className="rounded-xl text-rose-500" aria-label="Delete proposal"><Trash2 className="h-4 w-4" /></Button></div>
             </article>;
           })}</div>}
         </CardContent>
