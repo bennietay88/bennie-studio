@@ -72,10 +72,10 @@ test("bulk prospect deletion uses caller-authenticated soft delete and reports a
   assert.match(ui, /result\.processedIds/);
 });
 
-test("bulk sends enforce eligibility before dispatch and distinguish zero submissions", () => {
+test("bulk draft preparation is independent of dispatch eligibility and distinguishes zero submissions", () => {
   for (const name of ["ManualBulkProspectFollowUps", "ManualBulkProspectIntros"]) {
     const modal = readFileSync("src/components/SuperAdmin/" + name + ".tsx", "utf8");
-    assert.doesNotMatch(modal, /draftOnly: true/);
+    assert.match(modal, /draftOnly: true/);
     assert.match(modal, /No emails submitted/);
   }
   assert.match(api, /error\?\.code === "P0001" && error\?\.message === "prospect is not eligible for outreach"/);
