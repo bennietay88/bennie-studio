@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ExternalOutreachEvidence, type ExternalEvidenceMap } from "./ExternalOutreachEvidence";
 import { AlertTriangle, CheckCircle2, Loader2, Mail, Send, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "../../lib/supabase";
@@ -27,6 +28,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [finished, setFinished] = useState(false);
+  const [externalRecords, setExternalRecords] = useState<ExternalEvidenceMap>({});
   const dispatchLock = useRef(false);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
     setRows([]);
     setLoadError("");
     setFinished(false);
+    setExternalRecords({});
     if (!selectedIds.length || selectedIds.length > MAX_MANUAL_BULK_FOLLOW_UP) {
       setLoadError("Select between 1 and " + MAX_MANUAL_BULK_FOLLOW_UP + " prospects to review at a time.");
       return;
@@ -125,6 +128,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               reviewUrl: null,
               replyToMessageId: null,
               requestId: row.requestId,
+              recipientEvidence: externalRecords[row.email.trim().toLowerCase()],
             }),
           });
           const payload = await response.json().catch(() => ({}));
@@ -176,6 +180,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-5 sm:px-7">
           {loading && <div className="flex items-center gap-3 rounded-xl bg-indigo-50 p-4 text-sm font-medium text-indigo-900"><Loader2 className="h-5 w-5 animate-spin" /> Verifying sent history and preparing individual previews…</div>}
           {loadError && <div role="alert" className="flex gap-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><AlertTriangle className="h-5 w-5 shrink-0" /> {loadError}</div>}
+          {!loading && !finished && !!ready.length && <ExternalOutreachEvidence disabled={sending} emails={ready.map(row => row.email)} onChange={setExternalRecords}/>}
           {!!rows.length && (
             <>
               <div className="flex flex-wrap gap-3 text-sm font-medium">
