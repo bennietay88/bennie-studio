@@ -719,9 +719,12 @@ export async function sendDirectProspectOutreach(
   let externalEvidence: ReturnType<typeof resolveManualRecipientEvidence> = null;
   if (input.channel === "email") {
     if (!email) throw new Error("CONTACT_CHANNEL_MISSING");
+    // Match the database eligibility guard before creating a sending record.
+    if (prospect.deleted_at || prospect.archived_at) throw new Error("CONTACT_CLOSED");
     if (await isSalesSuppressed(db, email)) {
       throw new Error("CONTACT_SUPPRESSED");
     }
+    if (prospect.marketing_consent !== true) throw Object.assign(new Error("CONTACT_PERMISSION_NOT_VERIFIED"), { permissionBlockReason: "recipient_consent_missing_or_not_bound_to_address" });
     // Check existing recipient evidence server-side, not a repeated UI attestation.
     if (!input.replyToMessageId && input.recipientEvidence !== undefined) {
       externalEvidence = resolveManualRecipientEvidence(input.recipientEvidence, prospect, new Date(now));

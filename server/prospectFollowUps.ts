@@ -80,7 +80,7 @@ export async function syncProspectNextFollowUp(db: Db, prospectId: string) {
  * Stop follow-ups or remove records. Never permit a bulk action to strand
  * a message currently being handed to the email provider.
  */
-export async function bulkManageProspectFollowUps(db: Db, ids: string[], action: "stop_follow_up" | "delete") {
+export async function bulkManageProspectFollowUps(db: Db, ids: string[], action: "stop_follow_up" | "delete", actorDb?: Db) {
   const uniqueIds = [...new Set(ids)];
   if (!uniqueIds.length || uniqueIds.length > 100) throw new Error("Select 1 to 100 prospects per batch.");
   const records = requireResult(await db.from("prospects")
@@ -93,6 +93,21 @@ export async function bulkManageProspectFollowUps(db: Db, ids: string[], action:
     .select("id").in("prospect_id", uniqueIds).eq("status", "sending").limit(1)) || [];
   if (inFlight.length) throw new Error("A selected prospect has an email currently sending. Retry after delivery settles.");
 
+  // Use the authenticated caller for the audited soft-delete RPC. Never issue a hard DELETE.
+  if (action === "delete") {
+    if (!actorDb) throw new Error("Authenticated administrator required for prospect deletion.");
+    const processedIds: string[] = [];
+    const failedIds: string[] = [];
+    for (const id of uniqueIds) {
+      const result = await actorDb.rpc("soft_delete_prospect", { p_prospect_id: id, p_reason: "Deleted through prospect API" });
+      if (result.error) {
+        failedIds.push(id);
+        console.warn("[Prospect Soft Delete] Failed:", result.error.code || "unknown", result.error.message);
+      } else processedIds.push(id);
+    }
+    return { processed: processedIds.length, processedIds, failedIds, action };
+  }
+
   const now = new Date().toISOString();
   requireResult(await db.from("outreach_enrollments").update({
     status: "stopped", stop_reason: "Prospect follow-up stopped from pipeline", next_run_at: null, updated_at: now,
@@ -103,14 +118,9 @@ export async function bulkManageProspectFollowUps(db: Db, ids: string[], action:
   requireResult(await db.from("sales_tasks").update({ status: "dismissed", updated_at: now })
     .in("prospect_id", uniqueIds).eq("status", "open"));
 
-  if (action === "delete") {
-    const deleted = requireResult(await db.from("prospects").delete().in("id", uniqueIds).select("id")) || [];
-    if (deleted.length !== uniqueIds.length) throw new Error("Some prospects were not deleted. Refresh the list.");
-  } else {
-    const updated = requireResult(await db.from("prospects").update({
-      next_follow_up_at: null, outreach_status: "lost", status: "lost", updated_at: now,
-    }).in("id", uniqueIds).select("id")) || [];
-    if (updated.length !== uniqueIds.length) throw new Error("Some prospects were not stopped. Refresh the list.");
-  }
-  return { processed: uniqueIds.length, action };
+  const updated = requireResult(await db.from("prospects").update({
+    next_follow_up_at: null, outreach_status: "lost", status: "lost", updated_at: now,
+  }).in("id", uniqueIds).select("id")) || [];
+  if (updated.length !== uniqueIds.length) throw new Error("Some prospects were not stopped. Refresh the list.");
+  return { processed: uniqueIds.length, processedIds: uniqueIds, failedIds: [], action };
 }

@@ -8714,7 +8714,11 @@ async function startServer() {
     try {
       const profile = await getProfileForUser(req.user.id);
       if (!canManageSalesOperations(profile)) return res.status(403).json({ error: "Sales access required" });
-      return res.json(await bulkManageProspectFollowUps(supabaseAdmin, body.ids, body.action));
+      const actorDb = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: req.headers.authorization } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      return res.json(await bulkManageProspectFollowUps(supabaseAdmin, body.ids, body.action, actorDb));
     } catch (error: any) {
       const message = String(error?.message || "");
       if (/Some selected prospects|Converted customer|currently sending|Some prospects|Select 1 to 100/.test(message)) {
@@ -9610,6 +9614,13 @@ async function startServer() {
         return res.status(known.status).json({ error: detail || known.message, code: error.message, ...(detail ? { permissionBlockReason: reason } : {}) });
       }
 
+      // The eligibility trigger rejects the write before the provider is called.
+      if (error?.code === "P0001" && error?.message === "prospect is not eligible for outreach") {
+        return res.status(409).json({ error: "Prospect is not eligible for outreach: verify recorded marketing consent and active record status.", code: "CONTACT_PERMISSION_NOT_VERIFIED" });
+      }
+      if (error?.code === "P0001" && error?.message === "recipient is suppressed") {
+        return res.status(409).json({ error: "This recipient is suppressed.", code: "CONTACT_SUPPRESSED" });
+      }
       console.error("[Direct Prospect Outreach] Failed:", error);
       return res.status(503).json({
         error: "Outreach could not be sent. No successful delivery was recorded.",

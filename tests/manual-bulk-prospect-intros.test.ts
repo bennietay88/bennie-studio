@@ -105,7 +105,7 @@ test("intro preview reports specific eligibility failures", () => {
  for (const country of ["CA","AU"]) assert.equal(prepareManualBulkIntro({...CONTACT,contact_jurisdiction:country},[]).kind,"ready");
 });
 
-test("draft-only introduction previews defer consent verification to dispatch without modifying recipient data", () => {
+test("draft-only composition remains read-only but the dispatch dialog checks consent before preparing sendable rows", () => {
   const prospect = { ...CONTACT, marketing_consent: false, consent_timestamp: null, consent_email: null, contact_jurisdiction: "" };
   const before = JSON.stringify(prospect);
   const draft = prepareManualBulkIntro(prospect, [], {}, { draftOnly: true });
@@ -116,7 +116,7 @@ test("draft-only introduction previews defer consent verification to dispatch wi
   assert.equal(prepareManualBulkIntro({...prospect, outreach_status:"replied"}, [], {}, { draftOnly: true }).kind, "skip");
   assert.equal(prepareManualBulkIntro(prospect, []).kind, "permission_review");
   const ui = readFileSync("src/components/SuperAdmin/ManualBulkProspectIntros.tsx", "utf8");
-  assert.match(ui, /draftOnly: true/);
+  assert.match(ui, /draftOnly: false/);
   assert.match(ui, /drafts prepared/);
   const server = readFileSync("server/salesOperations.ts", "utf8");
   assert.match(server, /salesEmailPermissionBlockReason\(prospect, new Date\(now\)\)/);

@@ -61,7 +61,7 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
               if (!response.ok) throw new Error("Current prospect history could not be verified.");
               const payload = await response.json();
               if (!payload.prospect || !Array.isArray(payload.messages)) throw new Error("Current prospect history is incomplete.");
-              const preview = prepareManualBulkFollowUp(payload.prospect, payload.messages, overrides, new Date(), { draftOnly: true });
+              const preview = prepareManualBulkFollowUp(payload.prospect, payload.messages, overrides, new Date(), { draftOnly: false });
               return { ...preview, requestId, delivery: preview.kind === "ready" ? "ready" : "skipped" } as PreviewRow;
             } catch (error: any) {
               return { prospectId: id, name: "Selected prospect", email: "", kind: "skip", reason: error?.message || "Could not verify current prospect history.", requestId, delivery: "skipped" } as PreviewRow;
@@ -141,16 +141,17 @@ export function ManualBulkProspectFollowUps({ open, selectedIds, onOpenChange, o
           setRows((current) => current.map((item) => item.prospectId === row.prospectId
             ? blocked ? { ...item, kind: "skip", delivery: "skipped", reason: (error?.message || "Recipient is not eligible.") + " No email attempted.", error: undefined }
               : { ...item, delivery: "failed", error: error?.message || "Delivery failed. Verify with the email provider before trying again." } : item));
-          if (error?.status === 429 || error?.status === 503) {
-            setRows(current => current.map(item => item.delivery === "ready" ? { ...item, kind: "skip", delivery: "skipped", reason: "Not attempted: batch stopped after a provider or quota restriction." } : item));
-            setLoadError("Sending stopped after a shared provider failure or quota restriction. Remaining messages were not attempted.");
+          if (error?.status === 429 || error?.status === 503 || error?.status === 401 || error?.status === 403) {
+            setRows(current => current.map(item => item.delivery === "ready" ? { ...item, kind: "skip", delivery: "skipped", reason: "Not attempted: batch stopped after a shared service, authorization, or rate-limit error." } : item));
+            setLoadError("Sending stopped: " + (error?.message || "Shared service error.") + " Remaining messages were not attempted.");
             break;
           }
         }
       }
       setFinished(true);
       if (sentIds.length) onCompleted(sentIds);
-      toast.info("Bulk send completed. Check the provider delivery status for each message.");
+      if (sentIds.length) toast.info(`${sentIds.length} email(s) submitted. Check individual delivery status.`);
+      else toast.warning("No emails submitted. Review the individual results.");
     } catch (error: any) {
       setLoadError(error?.message || "Sending stopped. Verify delivery before retrying.");
       // Do not re-attempt messages with uncertain provider acceptance.
