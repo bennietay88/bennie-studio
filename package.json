@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "tsx api/index.ts",
-    "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --minify-whitespace --minify-syntax --sourcemap --outfile=dist/server.cjs",
+    "build": "vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --minify --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "production-build": "tsc --noEmit && vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --minify-whitespace --minify-syntax --sourcemap --outfile=dist/server.cjs && node --import tsx --test tests/*.test.ts && env -u npm_config_cache_dir npm audit --audit-level=high",
+    "production-build": "tsc --noEmit && vite build && esbuild api/index.ts --bundle --platform=node --format=cjs --packages=external --minify --sourcemap --outfile=dist/server.cjs && node --import tsx --test tests/*.test.ts && env -u npm_config_cache_dir npm audit --audit-level=high",
     "preview": "vite preview",
     "smoke": "node scripts/smoke.mjs",
     "smoke:public": "node scripts/smoke.mjs",
