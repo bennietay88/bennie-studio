@@ -183,7 +183,7 @@ export function ManualBulkProspectIntros({ open, selectedIds, onOpenChange, onCo
             <Mail className="h-5 w-5 text-indigo-600" /> Send introductions to new prospects
           </DialogTitle>
           <DialogDescription className="leading-6">
-            Review up to 25 selected prospects. Draft preparation does not require a permission record or authorize delivery. Delivery eligibility is checked by the server. Only new, uncontacted prospects can qualify. The server rechecks contact history, suppression and duplicate protection before sending.
+            Review up to 25 selected prospects. Manual outreach does not require a CRM consent record. Before sending, ensure each recipient may be contacted under applicable rules and your provider terms. Only new, uncontacted prospects can qualify. The server rechecks contact history, suppression and duplicate protection before sending.
             Existing outbound email history, replies, closed records or duplicate recipients are skipped.
             Opening this screen never sends an email.
           </DialogDescription>
