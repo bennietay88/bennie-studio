@@ -54,7 +54,7 @@ export function ProposalsDeals() {
   const paid=proposals.filter(p=>proposalIsPaid(p.config));
   const money=(p:any,amount:unknown)=>proposalMoney(amount,p.config?.currency||(p.config?.market==="MY"?"MYR":p.config?.market==="SG"?"SGD":p.config?.market==="GB"?"GBP":"USD"));
   const createProposal = async () => {
-    if (!form.target || !form.title.trim()) return toast.error("Choose a lead or customer and add a proposal title.");
+    if (!form.target.startsWith("lead:") || !form.title.trim()) return toast.error("Choose a lead with a verified recipient email and add a proposal title.");
     setSaving(true);
     try {
       const [kind,id]=form.target.split(":");
@@ -93,7 +93,7 @@ export function ProposalsDeals() {
   };
 
   const updateStatus = async (proposal: any, status: string) => {
-    if(proposalIsPaid(proposal.config)||proposal.checkout_url)return toast.error("A payment-linked or paid proposal requires manual finance review before changing status.");
+    if(proposalIsPaid(proposal.config)||proposal.checkout_url||proposal.status==="Accepted")return toast.error("A payment-linked or paid proposal requires manual finance review before changing status.");
     if(status==="Accepted")return toast.error("Acceptance must be recorded through the customer link; it is not payment.");
     if(status==="Sent"&&proposal.config?.pilotId&&proposal.config?.approvalState!=="approved")return toast.error("Pilot quotes require commercial approval before sharing.");
     let lossReason = "";
@@ -190,7 +190,7 @@ export function ProposalsDeals() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-w-xl rounded-3xl"><DialogHeader><DialogTitle>Create revenue proposal</DialogTitle></DialogHeader><div className="space-y-4 py-2">
-        <div><Label>Lead or customer</Label><Select value={form.target} onValueChange={(target) => setForm((current) => ({ ...current, target }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue placeholder="Choose a qualified lead" /></SelectTrigger><SelectContent>{leads.map((lead) => <SelectItem key={lead.id} value={`lead:${lead.id}`}>{lead.raw_fields?.businessName || lead.name} · {lead.email}</SelectItem>)}{businesses.map((business) => <SelectItem key={business.id} value={`business:${business.id}`}>{business.name} · customer</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Qualified lead (including existing-customer enquiries)</Label><Select value={form.target} onValueChange={(target) => setForm((current) => ({ ...current, target }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue placeholder="Choose a qualified lead" /></SelectTrigger><SelectContent>{leads.map((lead) => <SelectItem key={lead.id} value={`lead:${lead.id}`}>{lead.raw_fields?.businessName || lead.name} · {lead.email}</SelectItem>)}</SelectContent></Select></div>
         <div><Label>Product / service</Label><Select value={form.product} onValueChange={product=>setForm(current=>({...current,product,title:(liveCommercialProducts.find(p=>p.slug===product)?.name||COMMERCIAL_PILOTS.find(p=>p.id===product)?.name||product)+" proposal"}))}><SelectTrigger className="mt-2"><SelectValue/></SelectTrigger><SelectContent>{SALES_PRODUCT_SLUGS.map(slug=><SelectItem value={slug} key={slug}>{liveCommercialProducts.find(p=>p.slug===slug)?.name||slug}</SelectItem>)}{COMMERCIAL_PILOTS.map(p=><SelectItem value={p.id} key={p.id}>{p.name} · internal pilot</SelectItem>)}</SelectContent></Select></div><div><Label htmlFor="proposal-title">Proposal title</Label><Input id="proposal-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} className="mt-2 rounded-xl" /></div>
         <div className="grid gap-4 sm:grid-cols-2"><div><Label>Market</Label><Select value={form.market} onValueChange={(market) => setForm((current) => ({ ...current, market: market as RevenueMarket }))}><SelectTrigger className="mt-2 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(REVENUE_MARKETS).map(([code, market]) => <SelectItem key={code} value={code}>{market.label}</SelectItem>)}</SelectContent></Select></div><div><Label htmlFor="proposal-expiry">Valid until</Label><Input id="proposal-expiry" type="date" value={form.expiresAt} onChange={(event) => setForm((current) => ({ ...current, expiresAt: event.target.value }))} className="mt-2 rounded-xl" /></div></div>
         {pilot?<><div><Label>Reviewed quote (USD)</Label><Input type="number" min="1" step="0.01" value={form.pilotPrice} onChange={e=>setForm(c=>({...c,pilotPrice:e.target.value}))}/></div><div><Label>Compatibility, scope and exclusions</Label><Input value={form.scopeNotes} onChange={e=>setForm(c=>({...c,scopeNotes:e.target.value}))}/></div><p className="text-sm text-amber-700">Internal draft only. Approval and payment/fulfilment validation required before activation.</p></>:<div className="rounded-2xl bg-indigo-50 p-4 text-sm text-slate-700">{liveTerms?proposalMoney(liveTerms.monthly,"USD")+"/month + "+proposalMoney(liveTerms.setup,"USD")+" setup · "+(liveTerms.term?liveTerms.term+" month commitment":"Month-to-month"):"Verified live pricing unavailable"}</div>}

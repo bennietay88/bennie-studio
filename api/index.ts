@@ -1,3 +1,4 @@
+import { PILOT_SETTINGS_ID, readPilotControls, signPilotRelease } from "../server/commercialPilotControls.js";
 import { proposalExpired, proposalCharge, quoteSignature, approvedPilot, proposalCanShare, proposalPaymentMatches, nextPilotStage } from "../server/commercialProposal.js";
 import { loadCommercialReadiness } from "../server/commercialReadiness.js";
 import { SECONDARY_SITE_ROUTE_FIELDS, secondaryDomainFailure, type SecondaryRouteRow } from "../src/lib/secondarySiteRouting.js";
@@ -7719,13 +7720,22 @@ async function startServer() {
     },
   );
 
+  const getPilotRelease=async(id:string)=>{try{return (await readPilotControls(supabaseAdmin,previewClaimSecret())).releases[id]||null;}catch{return null;}};
+  app.get("/api/admin/commercial-pilot-controls",authenticate,superAdminOnly,async(_req:any,res:any)=>{try{const {releases,updatedAt}=await readPilotControls(supabaseAdmin,previewClaimSecret());res.setHeader("Cache-Control","no-store");return res.json({releases,updatedAt});}catch{return res.status(503).json({error:"Pilot release settings unavailable."});}});
+  app.patch("/api/admin/commercial-pilot-controls",authenticate,superAdminOnly,rateLimit({windowMs:60000,max:12,keyPrefix:"pilot-release"}),async(req:any,res:any)=>{
+    const body=validateBody(z.object({id:z.enum(["conversion-sprint","website-care","agency-partner"]),enabled:z.boolean(),terms:z.string().trim().min(20).max(3000),confirmation:z.literal("APPROVE COMMERCIAL PILOT")}).strict(),req,res);if(!body)return;
+    try{const current=await readPilotControls(supabaseAdmin,previewClaimSecret());const release={enabled:body.enabled,terms:body.terms,approvedAt:new Date().toISOString(),approvedBy:req.user.id};const content={...current.raw,[body.id]:{...release,signature:signPilotRelease(body.id,release,previewClaimSecret())}};
+    const result=current.updatedAt?await supabaseAdmin.from("settings").update({content,updated_at:release.approvedAt}).eq("id",PILOT_SETTINGS_ID).eq("updated_at",current.updatedAt).select("id").maybeSingle():await supabaseAdmin.from("settings").insert({id:PILOT_SETTINGS_ID,content,updated_at:release.approvedAt}).select("id").maybeSingle();
+    if(result.error||!result.data)return res.status(409).json({error:"Settings changed; refresh and retry."});return res.json({success:true,release});}catch{return res.status(503).json({error:"Pilot release setting could not be saved."});}
+  });
   // Explicit owner approval; approval signature binds the exact scoped quote.
   app.post("/api/admin/proposals/:proposalId/approve-pilot", authenticate, superAdminOnly, async(req:any,res:any)=>{
     if(!UUID_SCHEMA.safeParse(req.params.proposalId).success||req.body?.confirm!==true)return res.status(400).json({error:"Explicit approval required"});
     const {data:row,error}=await supabaseAdmin.from("proposals").select("*").eq("id",req.params.proposalId).maybeSingle();
     if(error||!row||row.status!=="Draft"||!row.config?.pilotId||!proposalCharge(row)||proposalExpired(row)||row.checkout_url)return res.status(409).json({error:"Review a current, unpaid scoped pilot draft first."});
-    if(process.env.COMMERCIAL_PILOT_PAYMENTS_ENABLED!=="true")return res.status(409).json({error:"Pilot release is disabled. Owner approval of service pricing and fulfilment is required before enabling it."});
-    const config={...row.config,approvalState:"approved",approvedAt:new Date().toISOString(),approvedBy:req.user.id,approvalSignature:quoteSignature(row,previewClaimSecret())};
+    const release=await getPilotRelease(row.config.pilotId);
+    if(!release?.enabled)return res.status(409).json({error:"Pilot release is disabled. Approve the service in Commercial execution first."});
+    const config={...row.config,approvalState:"approved",approvedAt:new Date().toISOString(),approvedBy:req.user.id,releaseApprovedAt:release.approvedAt,approvalSignature:quoteSignature(row,previewClaimSecret())};
     const {data:updated,error:writeError}=await supabaseAdmin.from("proposals").update({config,updated_at:new Date().toISOString()}).eq("id",row.id).eq("updated_at",row.updated_at).select("id").maybeSingle();
     if(writeError||!updated)return res.status(409).json({error:"Draft changed; refresh and review again."});
     return res.json({success:true});
@@ -7759,7 +7769,7 @@ async function startServer() {
       if(proposal.config?.acceptance?.quoteSignature!==quoteSignature(proposal,previewClaimSecret()))return res.status(409).json({error:"Accepted quote has changed or is legacy. Obtain acceptance of a new quote."});
       if(!charge)return res.status(409).json({error:"Quote terms could not be verified. Issue a new quote."});
       const pilot=Boolean(proposal.config?.pilotId);
-      if(pilot&&(process.env.COMMERCIAL_PILOT_PAYMENTS_ENABLED!=="true"||profile.role!=="super_admin"||!approvedPilot(proposal,previewClaimSecret())))return res.status(403).json({error:"Pilot payments are not approved."});
+      if(pilot){const release=await getPilotRelease(proposal.config.pilotId);if(!release?.enabled||release.approvedAt!==proposal.config.releaseApprovedAt||profile.role!=="super_admin"||!approvedPilot(proposal,previewClaimSecret()))return res.status(403).json({error:"Pilot payments are not approved for these release terms."});}
       let planId="";
       if(!pilot){
         const {data:product,error:priceError}=await supabaseAdmin.from("commercial_products").select("slug,entitlement_plan_slug,commercial_market_prices!inner(currency,recurring_monthly_price,recurring_setup_fee,minimum_term_months,recurring_config_status,active)").eq("slug",proposal.config.commercialProductSlug).eq("active",true).eq("commercial_market_prices.market","INTL").eq("commercial_market_prices.active",true).maybeSingle();
@@ -7777,14 +7787,15 @@ async function startServer() {
         if(existing.status==="open"&&existing.url)return res.json({checkoutUrl:existing.url,reused:true});
         if(existing.status==="complete")return res.status(409).json({error:"Checkout already completed; reconcile payment before proceeding."});
       }else if(proposal.checkout_url)return res.status(409).json({error:"Legacy payment link requires finance reconciliation before replacement."});
-      const expiresAt=Math.min(Math.floor(Date.parse(String(proposal.expires_at||proposal.valid_until)+"T23:59:59Z")/1000),Math.floor(Date.now()/1000)+23*3600);
+      const checkoutHour=Math.floor(Date.now()/3600000);
+      const expiresAt=Math.min(Math.floor(Date.parse(String(proposal.expires_at||proposal.valid_until)+"T23:59:59Z")/1000),checkoutHour*3600+23*3600);
       if(expiresAt<Math.floor(Date.now()/1000)+1800)return res.status(409).json({error:"Quote expires too soon. Issue an updated quote."});
       const metadata={proposalId:proposal.id,leadId:proposal.lead_id||"",businessId:pilot?"":proposal.business_id||"",planId,productSlug:pilot?"":proposal.config.commercialProductSlug||"",market:"INTL",termMonths:String(charge.term),termsVersion:COMMERCIAL_TERMS_VERSION,type:pilot?"commercial_pilot":"proposal_subscription",pilotId:pilot?String(proposal.config.pilotId):""};
       const lineItems: any[]=[];
       if(charge.monthlyMinor)lineItems.push({price_data:{currency:"usd",product_data:{name:proposal.package_name},unit_amount:charge.monthlyMinor,recurring:{interval:"month"}},quantity:1});
       if(charge.setupMinor)lineItems.push({price_data:{currency:"usd",product_data:{name:proposal.package_name+(charge.monthlyMinor?" setup":"")},unit_amount:charge.setupMinor},quantity:1});
       const url=publicAppUrl()+"/proposal/"+proposal.proposal_token;
-      const session=await stripe.checkout.sessions.create({mode:charge.monthlyMinor?"subscription":"payment",customer_email:email,line_items:lineItems,expires_at:expiresAt,billing_address_collection:"required",tax_id_collection:{enabled:true},payment_method_types:["card"],success_url:url+"?payment=returned",cancel_url:url,metadata,...(charge.monthlyMinor?{subscription_data:{metadata}}:{})},{idempotencyKey:"commercial-proposal-"+proposal.id+"-"+(previous||"initial")});
+      const session=await stripe.checkout.sessions.create({mode:charge.monthlyMinor?"subscription":"payment",customer_email:email,line_items:lineItems,expires_at:expiresAt,billing_address_collection:"required",tax_id_collection:{enabled:true},payment_method_types:["card"],success_url:url+"?payment=returned",cancel_url:url,metadata,...(charge.monthlyMinor?{subscription_data:{metadata}}:{})},{idempotencyKey:"commercial-proposal-"+proposal.id+"-"+(previous||"initial")+"-"+checkoutHour});
       if(!session.url)throw Error("Checkout unavailable");
       const {error:saveError}=await supabaseAdmin.from("proposals").update({checkout_url:session.url,config:{...proposal.config,checkoutSessionId:session.id,planId},updated_at:new Date().toISOString()}).eq("id",proposal.id);
       if(saveError)throw saveError;
@@ -7847,7 +7858,8 @@ async function startServer() {
         if (leadEmail && leadEmail !== body.email.toLowerCase()) return res.status(403).json({ error: "Use the email address that received this proposal." });
         if(!leadEmail)return res.status(409).json({error:"This proposal needs a verified recipient email. Ask for a lead-linked quote."});
         if(proposal.config?.payment?.paidAt)return res.json({success:true,paid:true,checkoutUrl:null});
-        if(proposal.status==="Accepted"&&proposal.config?.acceptance?.termsAcceptedAt){return res.json({success:true,checkoutUrl:proposal.checkout_url||null});}
+        if(proposal.config?.pilotId){const release=await getPilotRelease(proposal.config.pilotId);if(!release?.enabled||release.approvedAt!==proposal.config.releaseApprovedAt)return res.status(409).json({error:"This service quote needs updated commercial approval."});}
+        if(proposal.status==="Accepted"&&proposal.config?.acceptance?.termsAcceptedAt){if(proposal.config.acceptance.quoteSignature!==quoteSignature(proposal,previewClaimSecret()))return res.status(409).json({error:"Quote changed; request a new quote."});return res.json({success:true,checkoutUrl:proposal.checkout_url||null});}
         const acceptedAt = new Date().toISOString();
         const acceptance = { termsAcceptedAt: acceptedAt, termsVersion: COMMERCIAL_TERMS_VERSION, quoteSignature:quoteSignature(proposal,previewClaimSecret()) };
         const { error: updateError } = await supabaseAdmin.from("proposals").update({

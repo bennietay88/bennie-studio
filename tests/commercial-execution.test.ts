@@ -39,3 +39,13 @@ test("verified catalogue price and bounded diagnostics",()=>{
  assert.equal(checkoutFailureCategory(429),"rate_limited");
  assert.equal(COMMERCIAL_PILOTS.length,3);
 });
+
+import {signPilotRelease,readPilotRelease} from "../server/commercialPilotControls";
+test("pilot release defaults off and signed decision cannot be modified",()=>{
+ const release={enabled:true,terms:"Reviewed service scope and test evidence",approvedAt:"2026-11-28",approvedBy:"owner"};
+ const signed={...release,signature:signPilotRelease("conversion-sprint",release,secret)};
+ assert.equal(readPilotRelease("conversion-sprint",signed,secret)?.enabled,true);
+ assert.equal(readPilotRelease("website-care",signed,secret),null);
+ assert.equal(readPilotRelease("conversion-sprint",{...signed,terms:"Different terms without approval"},secret),null);
+ assert.equal(readPilotRelease("conversion-sprint",null,secret),null);
+});
